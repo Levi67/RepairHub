@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, gt, ilike, or, inArray, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, ilike, or, inArray, type SQL } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
-import { category, repairRequest, user } from '#lib/server/db/schema.ts';
+import { category, quote, repairRequest, user } from '#lib/server/db/schema.ts';
 import type { HandoverMode } from '#lib/handover.ts';
 
 const REQUEST_LIFETIME_DAYS = 30;
@@ -119,4 +119,22 @@ export async function createRequest(
 		})
 		.returning({ id: repairRequest.id });
 	return created;
+}
+
+/** The user's own requests with the number of open quotes, newest first. */
+export async function listOwnRequests(customerId: string) {
+	return db
+		.select({
+			id: repairRequest.id,
+			title: repairRequest.title,
+			status: repairRequest.status,
+			expiresAt: repairRequest.expiresAt,
+			createdAt: repairRequest.createdAt,
+			pendingQuotes: count(quote.id)
+		})
+		.from(repairRequest)
+		.leftJoin(quote, and(eq(quote.requestId, repairRequest.id), eq(quote.status, 'pending')))
+		.where(eq(repairRequest.customerId, customerId))
+		.groupBy(repairRequest.id)
+		.orderBy(desc(repairRequest.createdAt));
 }

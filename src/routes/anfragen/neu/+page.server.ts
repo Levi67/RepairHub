@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { fieldErrors } from '#lib/schemas/form.ts';
 import { repairRequestSchema } from '#lib/schemas/request.ts';
 import { createRequest, listCategoryTree } from '#lib/server/requests.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
@@ -29,12 +30,7 @@ export const actions: Actions = {
 
 		const parsed = repairRequestSchema.safeParse(raw);
 		if (!parsed.success) {
-			const errors: Record<string, string> = {};
-			for (const issue of parsed.error.issues) {
-				const key = String(issue.path[0]);
-				errors[key] ??= issue.message;
-			}
-			return fail(400, { values: raw, errors });
+			return fail(400, { values: raw, errors: fieldErrors(parsed.error) });
 		}
 
 		const created = await createRequest(user.id, parsed.data);

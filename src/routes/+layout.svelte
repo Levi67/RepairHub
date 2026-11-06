@@ -17,6 +17,11 @@
 		<nav class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
 			<a href="/" class="text-xl font-bold text-emerald-700">RepairHub</a>
 			<a href="/anfragen" class="text-sm hover:text-emerald-700">Anfragen</a>
+			{#if data.user}
+				<a href="/profil/meine-anfragen" class="text-sm hover:text-emerald-700">Meine Anfragen</a>
+				<a href="/profil/meine-angebote" class="text-sm hover:text-emerald-700">Meine Angebote</a>
+				<a href="/auftraege" class="text-sm hover:text-emerald-700">Aufträge</a>
+			{/if}
 			<div class="ml-auto flex items-center gap-3 text-sm">
 				<a
 					href="/anfragen/neu"

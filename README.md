@@ -10,6 +10,9 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Sign up, log in, log out (email + password)
 - Create a repair request (`/anfragen/neu`), with validation
 - Browse and filter open requests by category and keyword (`/anfragen`), detail page
+- Quotes: repairers send a quote on a request, can withdraw it; the customer compares and accepts one
+- Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
+- „Meine Anfragen“ and „Meine Angebote“ overview pages
 - Landing page, Impressum/Datenschutz placeholders
 - Category tree seeded via migration
 

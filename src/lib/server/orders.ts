@@ -1,0 +1,293 @@
+import { and, asc, desc, eq, inArray, ne, or } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
+import { db } from '#lib/server/db/index.ts';
+import { order, orderEvent, quote, repairRequest, user } from '#lib/server/db/schema.ts';
+import { DomainError } from '#lib/server/errors.ts';
+import { commissionCents } from '#lib/money.ts';
+import type { OrderStatus } from '#lib/status.ts';
+
+// Placeholder until the team decides (Technical.md 13).
+const COMMISSION_RATE_BP = 1000;
+const AUTO_CONFIRM_DAYS = 7;
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Customer accepts a quote. Until Stripe is integrated the payment step is skipped,
+ * so this does what the `checkout.session.completed` webhook will do later:
+ * order `paid`, request `assigned`, all other open quotes `rejected`.
+ */
+export async function acceptQuote(customerId: string, quoteId: string): Promise<string> {
+	return db.transaction(async (tx) => {
+		const [row] = await tx
+			.select({ quote, request: repairRequest })
+			.from(quote)
+			.innerJoin(repairRequest, eq(quote.requestId, repairRequest.id))
+			.where(eq(quote.id, quoteId))
+			.for('update');
+
+		if (!row || row.request.customerId !== customerId) {
+			throw new DomainError('Angebot nicht gefunden.');
+		}
+		if (row.quote.status !== 'pending' || row.quote.validUntil <= new Date()) {
+			throw new DomainError('Dieses Angebot kann nicht mehr angenommen werden.');
+		}
+		if (row.request.status !== 'open') {
+			throw new DomainError('Für diese Anfrage wurde bereits ein Angebot angenommen.');
+		}
+
+		await tx
+			.update(repairRequest)
+			.set({ status: 'assigned' })
+			.where(eq(repairRequest.id, row.request.id));
+		await tx.update(quote).set({ status: 'accepted' }).where(eq(quote.id, quoteId));
+		await tx
+			.update(quote)
+			.set({ status: 'rejected' })
+			.where(
+				and(eq(quote.requestId, row.request.id), eq(quote.status, 'pending'), ne(quote.id, quoteId))
+			);
+
+		const commission = commissionCents(row.quote.priceCents, COMMISSION_RATE_BP);
+		const [created] = await tx
+			.insert(order)
+			.values({
+				requestId: row.request.id,
+				quoteId,
+				customerId,
+				repairerId: row.quote.repairerId,
+				priceCents: row.quote.priceCents,
+				commissionRateBp: COMMISSION_RATE_BP,
+				commissionCents: commission,
+				payoutCents: row.quote.priceCents - commission,
+				handoverMode: row.quote.handoverMode,
+				status: 'paid',
+				paidAt: new Date()
+			})
+			.returning({ id: order.id });
+
+		await tx.insert(orderEvent).values({
+			orderId: created.id,
+			actorId: customerId,
+			toStatus: 'paid',
+			note: 'Angebot angenommen (Zahlung im Testbetrieb übersprungen)'
+		});
+
+		return created.id;
+	});
+}
+
+type Party = 'customer' | 'repairer' | 'either';
+
+/**
+ * Shared core of every status change (Technical.md 6.2): locks the order, checks
+ * who may act and from which status, then updates it and logs an order event.
+ */
+async function transition(
+	tx: Tx,
+	opts: {
+		orderId: string;
+		actorId: string;
+		party: Party;
+		from: OrderStatus[];
+		to: OrderStatus;
+		set?: Partial<typeof order.$inferInsert>;
+		note?: string;
+	}
+) {
+	const [current] = await tx.select().from(order).where(eq(order.id, opts.orderId)).for('update');
+
+	const isCustomer = current?.customerId === opts.actorId;
+	const isRepairer = current?.repairerId === opts.actorId;
+	if (!current || (!isCustomer && !isRepairer)) throw new DomainError('Auftrag nicht gefunden.');
+
+	const allowed =
+		opts.party === 'either' ||
+		(opts.party === 'customer' && isCustomer) ||
+		(opts.party === 'repairer' && isRepairer);
+	if (!allowed) throw new DomainError('Dazu bist du bei diesem Auftrag nicht berechtigt.');
+	if (!opts.from.includes(current.status)) {
+		throw new DomainError('Diese Aktion ist im aktuellen Status nicht möglich.');
+	}
+
+	await tx
+		.update(order)
+		.set({ ...opts.set, status: opts.to })
+		.where(eq(order.id, opts.orderId));
+	await tx.insert(orderEvent).values({
+		orderId: opts.orderId,
+		actorId: opts.actorId,
+		fromStatus: current.status,
+		toStatus: opts.to,
+		note: opts.note || null
+	});
+
+	return current;
+}
+
+export function markInProgress(orderId: string, actorId: string) {
+	return db.transaction((tx) =>
+		transition(tx, {
+			orderId,
+			actorId,
+			party: 'repairer',
+			from: ['paid'],
+			to: 'in_progress',
+			note: 'Gerät erhalten, Reparatur begonnen'
+		})
+	);
+}
+
+export function markRepaired(orderId: string, actorId: string, returnTracking?: string) {
+	const now = new Date();
+	return db.transaction((tx) =>
+		transition(tx, {
+			orderId,
+			actorId,
+			party: 'repairer',
+			from: ['in_progress'],
+			to: 'repaired',
+			set: {
+				repairedAt: now,
+				autoConfirmAt: new Date(now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000),
+				...(returnTracking ? { returnTracking } : {})
+			},
+			note: returnTracking ? `Rücksendung: ${returnTracking}` : undefined
+		})
+	);
+}
+
+export function confirmCompleted(orderId: string, actorId: string) {
+	return db.transaction((tx) =>
+		transition(tx, {
+			orderId,
+			actorId,
+			party: 'customer',
+			from: ['repaired'],
+			to: 'completed',
+			set: { completedAt: new Date() },
+			note: 'Reparatur bestätigt'
+		})
+	);
+}
+
+/** Either side can cancel before work starts. The request opens again for new quotes. */
+export function cancelOrder(orderId: string, actorId: string, reason?: string) {
+	return db.transaction(async (tx) => {
+		const cancelled = await transition(tx, {
+			orderId,
+			actorId,
+			party: 'either',
+			from: ['awaiting_payment', 'paid'],
+			to: 'cancelled',
+			note: reason
+		});
+		await tx
+			.update(repairRequest)
+			.set({ status: 'open' })
+			.where(and(eq(repairRequest.id, cancelled.requestId), eq(repairRequest.status, 'assigned')));
+	});
+}
+
+/** Customer enters the tracking number after shipping the item. No status change. */
+export async function setOutboundTracking(orderId: string, actorId: string, tracking: string) {
+	const updated = await db
+		.update(order)
+		.set({ outboundTracking: tracking })
+		.where(
+			and(
+				eq(order.id, orderId),
+				eq(order.customerId, actorId),
+				eq(order.handoverMode, 'shipping'),
+				inArray(order.status, ['paid', 'in_progress'])
+			)
+		)
+		.returning({ id: order.id });
+	if (!updated.length) throw new DomainError('Sendungsnummer kann nicht mehr geändert werden.');
+}
+
+const customer = alias(user, 'customer');
+const repairer = alias(user, 'repairer');
+
+/** Order with both parties, or null if it doesn't exist or the user isn't part of it. */
+export async function getOrderForUser(orderId: string, userId: string) {
+	const [row] = await db
+		.select({
+			order,
+			requestTitle: repairRequest.title,
+			requestPlz: repairRequest.plz,
+			requestCity: repairRequest.city,
+			quoteMessage: quote.message,
+			quotePartsNote: quote.partsNote,
+			quoteEstimatedDays: quote.estimatedDays,
+			quoteIncludesReturnShipping: quote.includesReturnShipping,
+			customerName: customer.name,
+			repairerName: repairer.name
+		})
+		.from(order)
+		.innerJoin(repairRequest, eq(order.requestId, repairRequest.id))
+		.innerJoin(quote, eq(order.quoteId, quote.id))
+		.innerJoin(customer, eq(order.customerId, customer.id))
+		.innerJoin(repairer, eq(order.repairerId, repairer.id))
+		.where(
+			and(eq(order.id, orderId), or(eq(order.customerId, userId), eq(order.repairerId, userId)))
+		);
+	if (!row) return null;
+
+	const events = await db
+		.select({
+			id: orderEvent.id,
+			toStatus: orderEvent.toStatus,
+			note: orderEvent.note,
+			createdAt: orderEvent.createdAt,
+			actorName: user.name
+		})
+		.from(orderEvent)
+		.leftJoin(user, eq(orderEvent.actorId, user.id))
+		.where(eq(orderEvent.orderId, orderId))
+		.orderBy(asc(orderEvent.createdAt));
+
+	return { ...row, events };
+}
+
+/** All orders where the user is customer or repairer, newest first. */
+export async function listOrdersForUser(userId: string) {
+	const rows = await db
+		.select({
+			id: order.id,
+			status: order.status,
+			priceCents: order.priceCents,
+			handoverMode: order.handoverMode,
+			createdAt: order.createdAt,
+			customerId: order.customerId,
+			requestTitle: repairRequest.title,
+			customerName: customer.name,
+			repairerName: repairer.name
+		})
+		.from(order)
+		.innerJoin(repairRequest, eq(order.requestId, repairRequest.id))
+		.innerJoin(customer, eq(order.customerId, customer.id))
+		.innerJoin(repairer, eq(order.repairerId, repairer.id))
+		.where(or(eq(order.customerId, userId), eq(order.repairerId, userId)))
+		.orderBy(desc(order.createdAt));
+
+	return rows.map(({ customerId, customerName, repairerName, ...row }) => {
+		const asCustomer = customerId === userId;
+		return {
+			...row,
+			role: asCustomer ? ('customer' as const) : ('repairer' as const),
+			otherPartyName: asCustomer ? repairerName : customerName
+		};
+	});
+}
+
+/** The current (not cancelled) order of a request, for its owner. */
+export async function getActiveOrderIdForRequest(requestId: string) {
+	const [row] = await db
+		.select({ id: order.id })
+		.from(order)
+		.where(and(eq(order.requestId, requestId), ne(order.status, 'cancelled')))
+		.orderBy(desc(order.createdAt))
+		.limit(1);
+	return row?.id ?? null;
+}
