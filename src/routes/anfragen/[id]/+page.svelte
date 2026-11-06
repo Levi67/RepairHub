@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { formatCents } from '#lib/money.ts';
 	import { handoverLabels } from '#lib/handover.ts';
-	import { quoteStatusLabels, requestStatusLabels } from '#lib/status.ts';
+	import { quoteDisplayStatus, requestStatusLabels } from '#lib/status.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
 
@@ -16,6 +16,11 @@
 	const isOpen = $derived(request.status === 'open' && request.expiresAt > now);
 	const ownQuoteIsActive = $derived(
 		data.ownQuote?.status === 'pending' && data.ownQuote.validUntil > now
+	);
+	const ownQuoteDisplay = $derived(data.ownQuote && quoteDisplayStatus(data.ownQuote, now));
+	// Accepted and the order is still running: the repairer sees their quote and the order link.
+	const ownQuoteIsAccepted = $derived(
+		data.ownQuote?.status === 'accepted' && data.ownQuote.orderStatus !== 'cancelled'
 	);
 	const canQuote = $derived(page.data.user && !data.isOwner && isOpen && !ownQuoteIsActive);
 </script>
@@ -108,17 +113,14 @@
 		{#if data.quotes.length}
 			<div class="space-y-3">
 				{#each data.quotes as q (q.id)}
-					{@const expired = q.status === 'pending' && q.validUntil <= now}
+					{@const display = quoteDisplayStatus(q, now)}
 					<div class="rounded-lg border border-stone-200 bg-white p-4">
 						<div class="mb-2 flex items-center justify-between gap-2">
 							<span class="font-medium">{q.repairerName}</span>
-							<StatusBadge
-								status={expired ? 'expired' : q.status}
-								label={expired ? quoteStatusLabels.expired : quoteStatusLabels[q.status]}
-							/>
+							<StatusBadge {...display} />
 						</div>
 						{@render quoteDetails(q)}
-						{#if q.status === 'pending' && !expired && isOpen}
+						{#if display.status === 'pending' && isOpen}
 							<div
 								class="mt-3 flex items-center justify-between gap-2 border-t border-stone-100 pt-3"
 							>
@@ -146,14 +148,11 @@
 	</section>
 {:else}
 	<section class="mt-8">
-		{#if data.ownQuote && (ownQuoteIsActive || data.ownQuote.status === 'accepted')}
+		{#if data.ownQuote && ownQuoteDisplay && (ownQuoteIsActive || ownQuoteIsAccepted)}
 			<h2 class="mb-3 text-xl font-semibold">Dein Angebot</h2>
 			<div class="rounded-lg border border-stone-200 bg-white p-4">
 				<div class="mb-2">
-					<StatusBadge
-						status={data.ownQuote.status}
-						label={quoteStatusLabels[data.ownQuote.status]}
-					/>
+					<StatusBadge {...ownQuoteDisplay} />
 				</div>
 				{@render quoteDetails(data.ownQuote)}
 				{#if data.ownQuote.orderId}
@@ -188,8 +187,8 @@
 			<h2 class="mb-3 text-xl font-semibold">Angebot abgeben</h2>
 			{#if data.ownQuote}
 				<p class="mb-3 text-sm text-stone-500">
-					Dein letztes Angebot ist {quoteStatusLabels[data.ownQuote.status].toLowerCase()}. Du
-					kannst ein neues abgeben.
+					Dein letztes Angebot ist {ownQuoteDisplay?.label.toLowerCase()}. Du kannst ein neues
+					abgeben.
 				</p>
 			{/if}
 			<form

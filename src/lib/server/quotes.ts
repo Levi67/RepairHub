@@ -69,13 +69,23 @@ const quoteColumns = {
 /** Quotes on a request, for its owner. Withdrawn quotes are hidden. */
 export async function listQuotesForRequest(requestId: string) {
 	return db
-		.select({ ...quoteColumns, repairerId: quote.repairerId, repairerName: user.name })
+		.select({
+			...quoteColumns,
+			repairerId: quote.repairerId,
+			repairerName: user.name,
+			orderStatus: order.status
+		})
 		.from(quote)
 		.innerJoin(user, eq(quote.repairerId, user.id))
+		.leftJoin(order, eq(order.quoteId, quote.id))
 		.where(and(eq(quote.requestId, requestId), sql`${quote.status} <> 'withdrawn'`))
 		.orderBy(
-			// accepted first, then open quotes by price, then the rest
-			sql`case ${quote.status} when 'accepted' then 0 when 'pending' then 1 else 2 end`,
+			// current acceptance first, then open quotes by price, then the rest
+			sql`case
+				when ${order.status} = 'cancelled' then 2
+				when ${quote.status} = 'accepted' then 0
+				when ${quote.status} = 'pending' then 1
+				else 2 end`,
 			asc(quote.priceCents)
 		);
 }
@@ -83,7 +93,7 @@ export async function listQuotesForRequest(requestId: string) {
 /** The repairer's most recent quote on a request, if any. */
 export async function getLatestOwnQuote(requestId: string, repairerId: string) {
 	const [row] = await db
-		.select({ ...quoteColumns, orderId: order.id })
+		.select({ ...quoteColumns, orderId: order.id, orderStatus: order.status })
 		.from(quote)
 		.leftJoin(order, eq(order.quoteId, quote.id))
 		.where(and(eq(quote.requestId, requestId), eq(quote.repairerId, repairerId)))
@@ -98,7 +108,8 @@ export async function listOwnQuotes(repairerId: string) {
 			...quoteColumns,
 			requestId: repairRequest.id,
 			requestTitle: repairRequest.title,
-			orderId: order.id
+			orderId: order.id,
+			orderStatus: order.status
 		})
 		.from(quote)
 		.innerJoin(repairRequest, eq(quote.requestId, repairRequest.id))

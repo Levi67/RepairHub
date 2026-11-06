@@ -30,6 +30,23 @@ export type RequestStatus = keyof typeof requestStatusLabels;
 export type QuoteStatus = keyof typeof quoteStatusLabels;
 export type OrderStatus = keyof typeof orderStatusLabels;
 
+/**
+ * What a quote shows to users: an open quote past its validity is "expired", and an accepted
+ * quote whose order was cancelled shows the cancellation.
+ */
+export function quoteDisplayStatus(
+	q: { status: QuoteStatus; validUntil: Date; orderStatus?: OrderStatus | null },
+	now = new Date()
+): { status: QuoteStatus | OrderStatus; label: string } {
+	if (q.status === 'pending' && q.validUntil <= now) {
+		return { status: 'expired', label: quoteStatusLabels.expired };
+	}
+	if (q.status === 'accepted' && q.orderStatus === 'cancelled') {
+		return { status: 'cancelled', label: orderStatusLabels.cancelled };
+	}
+	return { status: q.status, label: quoteStatusLabels[q.status] };
+}
+
 /** Tailwind classes for the small status badges. */
 export function statusTone(status: RequestStatus | QuoteStatus | OrderStatus): string {
 	switch (status) {

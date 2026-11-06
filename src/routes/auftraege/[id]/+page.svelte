@@ -181,8 +181,9 @@
 							class="w-full rounded-md border-stone-300"></textarea>
 						<button class="{button} bg-red-600 text-white hover:bg-red-700">Stornieren</button>
 						<p class="text-xs text-stone-500">
-							Möglich, solange die Reparatur noch nicht begonnen hat. Die Anfrage wird wieder für
-							neue Angebote geöffnet.
+							Möglich, solange die Reparatur noch nicht begonnen hat. Die Anfrage wird wieder
+							geöffnet: Die anderen Angebote können erneut angenommen werden, und es können neue
+							Angebote eingehen.
 						</p>
 					</form>
 				</details>

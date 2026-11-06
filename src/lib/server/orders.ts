@@ -171,7 +171,10 @@ export function confirmCompleted(orderId: string, actorId: string) {
 	);
 }
 
-/** Either side can cancel before work starts. The request opens again for new quotes. */
+/**
+ * Either side can cancel before work starts. The request opens again: new quotes can come in,
+ * and the quotes rejected by this acceptance become open again so the customer can pick one.
+ */
 export function cancelOrder(orderId: string, actorId: string, reason?: string) {
 	return db.transaction(async (tx) => {
 		const cancelled = await transition(tx, {
@@ -186,6 +189,12 @@ export function cancelOrder(orderId: string, actorId: string, reason?: string) {
 			.update(repairRequest)
 			.set({ status: 'open' })
 			.where(and(eq(repairRequest.id, cancelled.requestId), eq(repairRequest.status, 'assigned')));
+		// Only an acceptance rejects quotes, and the previous cancellation restored its rejections,
+		// so every rejected quote on this request was rejected by the order being cancelled.
+		await tx
+			.update(quote)
+			.set({ status: 'pending' })
+			.where(and(eq(quote.requestId, cancelled.requestId), eq(quote.status, 'rejected')));
 	});
 }
 
