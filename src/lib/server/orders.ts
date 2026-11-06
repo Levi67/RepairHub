@@ -1,7 +1,14 @@
 import { and, asc, desc, eq, inArray, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '#lib/server/db/index.ts';
-import { order, orderEvent, quote, repairRequest, user } from '#lib/server/db/schema.ts';
+import {
+	conversation,
+	order,
+	orderEvent,
+	quote,
+	repairRequest,
+	user
+} from '#lib/server/db/schema.ts';
 import { DomainError } from '#lib/server/errors.ts';
 import { commissionCents } from '#lib/money.ts';
 import type { OrderStatus } from '#lib/status.ts';
@@ -231,11 +238,19 @@ export async function getOrderForUser(orderId: string, userId: string) {
 			quoteEstimatedDays: quote.estimatedDays,
 			quoteIncludesReturnShipping: quote.includesReturnShipping,
 			customerName: customer.name,
-			repairerName: repairer.name
+			repairerName: repairer.name,
+			conversationId: conversation.id
 		})
 		.from(order)
 		.innerJoin(repairRequest, eq(order.requestId, repairRequest.id))
 		.innerJoin(quote, eq(order.quoteId, quote.id))
+		.leftJoin(
+			conversation,
+			and(
+				eq(conversation.requestId, order.requestId),
+				eq(conversation.repairerId, order.repairerId)
+			)
+		)
 		.innerJoin(customer, eq(order.customerId, customer.id))
 		.innerJoin(repairer, eq(order.repairerId, repairer.id))
 		.where(

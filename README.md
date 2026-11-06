@@ -13,6 +13,7 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Quotes: repairers send a quote on a request, can withdraw it; the customer compares and accepts one
 - Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
 - „Meine Anfragen“ and „Meine Angebote“ overview pages
+- Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
 - Landing page, Impressum/Datenschutz placeholders
 - Category tree seeded via migration
 

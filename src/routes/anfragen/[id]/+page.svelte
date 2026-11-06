@@ -117,7 +117,17 @@
 					<div class="rounded-lg border border-stone-200 bg-white p-4">
 						<div class="mb-2 flex items-center justify-between gap-2">
 							<span class="font-medium">{q.repairerName}</span>
-							<StatusBadge {...display} />
+							<div class="flex items-center gap-3">
+								{#if q.conversationId}
+									<a
+										href="/nachrichten/{q.conversationId}"
+										class="text-sm text-emerald-700 hover:underline"
+									>
+										Nachricht
+									</a>
+								{/if}
+								<StatusBadge {...display} />
+							</div>
 						</div>
 						{@render quoteDetails(q)}
 						{#if display.status === 'pending' && isOpen}
@@ -148,6 +158,23 @@
 	</section>
 {:else}
 	<section class="mt-8">
+		{#if data.conversationId}
+			<a
+				href="/nachrichten/{data.conversationId}"
+				class="mb-6 inline-block rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:border-emerald-500"
+			>
+				Chat mit {request.customerName} öffnen
+			</a>
+		{:else if page.data.user && isOpen}
+			<form method="post" action="?/ask" use:enhance class="mb-6">
+				<button
+					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:border-emerald-500"
+				>
+					Frage an {request.customerName} stellen
+				</button>
+			</form>
+		{/if}
+
 		{#if data.ownQuote && ownQuoteDisplay && (ownQuoteIsActive || ownQuoteIsAccepted)}
 			<h2 class="mb-3 text-xl font-semibold">Dein Angebot</h2>
 			<div class="rounded-lg border border-stone-200 bg-white p-4">

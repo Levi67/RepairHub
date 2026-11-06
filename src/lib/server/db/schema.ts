@@ -178,6 +178,50 @@ export const orderEvent = pgTable(
 	(table) => [index('order_event_order_idx').on(table.orderId, table.createdAt)]
 );
 
+// One conversation per (request, repairer) pair (Technical.md 3.9).
+export const conversation = pgTable(
+	'conversation',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		requestId: uuid('request_id')
+			.notNull()
+			.references(() => repairRequest.id, { onDelete: 'cascade' }),
+		customerId: text('customer_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		repairerId: text('repairer_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		customerLastReadAt: timestamp('customer_last_read_at', { withTimezone: true }),
+		repairerLastReadAt: timestamp('repairer_last_read_at', { withTimezone: true }),
+		lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [
+		uniqueIndex('conversation_request_repairer_idx').on(table.requestId, table.repairerId),
+		index('conversation_customer_idx').on(table.customerId),
+		index('conversation_repairer_idx').on(table.repairerId)
+	]
+);
+
+export const message = pgTable(
+	'message',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		conversationId: uuid('conversation_id')
+			.notNull()
+			.references(() => conversation.id, { onDelete: 'cascade' }),
+		senderId: text('sender_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		body: text('body').notNull(),
+		// Looked like contact details before booking; kept for moderation.
+		flaggedContactInfo: boolean('flagged_contact_info').notNull().default(false),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
+);
+
 export const categoryRelations = relations(category, ({ one, many }) => ({
 	parent: one(category, {
 		fields: [category.parentId],
@@ -206,4 +250,19 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 
 export const orderEventRelations = relations(orderEvent, ({ one }) => ({
 	order: one(order, { fields: [orderEvent.orderId], references: [order.id] })
+}));
+
+export const conversationRelations = relations(conversation, ({ one, many }) => ({
+	request: one(repairRequest, {
+		fields: [conversation.requestId],
+		references: [repairRequest.id]
+	}),
+	messages: many(message)
+}));
+
+export const messageRelations = relations(message, ({ one }) => ({
+	conversation: one(conversation, {
+		fields: [message.conversationId],
+		references: [conversation.id]
+	})
 }));

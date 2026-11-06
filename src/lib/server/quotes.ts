@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
-import { order, quote, repairRequest, user } from '#lib/server/db/schema.ts';
+import { conversation, order, quote, repairRequest, user } from '#lib/server/db/schema.ts';
+import { ensureConversation } from '#lib/server/conversations.ts';
 import { DomainError, isUniqueViolation } from '#lib/server/errors.ts';
 import type { QuoteInput } from '#lib/schemas/quote.ts';
 
@@ -23,16 +24,20 @@ export async function createQuote(repairerId: string, requestId: string, input: 
 
 	const validUntil = new Date(Date.now() + QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
 	try {
-		await db.insert(quote).values({
-			requestId,
-			repairerId,
-			priceCents: input.price,
-			estimatedDays: input.estimatedDays,
-			handoverMode: input.handoverMode,
-			includesReturnShipping: input.includesReturnShipping,
-			message: input.message,
-			partsNote: input.partsNote || null,
-			validUntil
+		await db.transaction(async (tx) => {
+			await tx.insert(quote).values({
+				requestId,
+				repairerId,
+				priceCents: input.price,
+				estimatedDays: input.estimatedDays,
+				handoverMode: input.handoverMode,
+				includesReturnShipping: input.includesReturnShipping,
+				message: input.message,
+				partsNote: input.partsNote || null,
+				validUntil
+			});
+			// A quote starts the chat between customer and repairer (Technical.md 3.9).
+			await ensureConversation(tx, request, repairerId);
 		});
 	} catch (error) {
 		if (isUniqueViolation(error)) {
@@ -73,11 +78,19 @@ export async function listQuotesForRequest(requestId: string) {
 			...quoteColumns,
 			repairerId: quote.repairerId,
 			repairerName: user.name,
-			orderStatus: order.status
+			orderStatus: order.status,
+			conversationId: conversation.id
 		})
 		.from(quote)
 		.innerJoin(user, eq(quote.repairerId, user.id))
 		.leftJoin(order, eq(order.quoteId, quote.id))
+		.leftJoin(
+			conversation,
+			and(
+				eq(conversation.requestId, quote.requestId),
+				eq(conversation.repairerId, quote.repairerId)
+			)
+		)
 		.where(and(eq(quote.requestId, requestId), sql`${quote.status} <> 'withdrawn'`))
 		.orderBy(
 			// current acceptance first, then open quotes by price, then the rest

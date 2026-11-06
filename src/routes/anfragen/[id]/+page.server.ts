@@ -9,6 +9,7 @@ import {
 	withdrawQuote
 } from '#lib/server/quotes.ts';
 import { acceptQuote, getActiveOrderIdForRequest } from '#lib/server/orders.ts';
+import { getConversationIdFor, startConversation } from '#lib/server/conversations.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 import { fieldErrors } from '#lib/schemas/form.ts';
@@ -28,11 +29,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			listQuotesForRequest(request.id),
 			getActiveOrderIdForRequest(request.id)
 		]);
-		return { request, isOwner, quotes, orderId, ownQuote: null };
+		return { request, isOwner, quotes, orderId, ownQuote: null, conversationId: null };
 	}
 
-	const ownQuote = userId ? await getLatestOwnQuote(request.id, userId) : null;
-	return { request, isOwner, quotes: [], orderId: null, ownQuote };
+	const [ownQuote, conversationId] = userId
+		? await Promise.all([
+				getLatestOwnQuote(request.id, userId),
+				getConversationIdFor(request.id, userId)
+			])
+		: [null, null];
+	return { request, isOwner, quotes: [], orderId: null, ownQuote, conversationId };
 };
 
 export const actions: Actions = {
@@ -61,6 +67,19 @@ export const actions: Actions = {
 			return failOnDomainError(e);
 		}
 		return { quoteSent: true };
+	},
+
+	ask: async (event) => {
+		const user = event.locals.user;
+		if (!user) return redirect(302, loginUrl(event.url));
+
+		let conversationId: string;
+		try {
+			conversationId = await startConversation(user.id, event.params.id);
+		} catch (e) {
+			return failOnDomainError(e);
+		}
+		return redirect(303, `/nachrichten/${conversationId}`);
 	},
 
 	withdraw: async (event) => {

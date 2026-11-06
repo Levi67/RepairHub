@@ -1,6 +1,13 @@
 import type { LayoutServerLoad } from './$types';
+import { countUnreadMessages } from '#lib/server/conversations.ts';
 
-export const load: LayoutServerLoad = (event) => {
+export const load: LayoutServerLoad = async (event) => {
+	// Re-run by `invalidate('app:unread')`: polled from the layout, and after reading a chat.
+	event.depends('app:unread');
 	const user = event.locals.user;
-	return { user: user ? { id: user.id, name: user.name } : null };
+	if (!user) return { user: null, unreadMessages: 0 };
+	return {
+		user: { id: user.id, name: user.name },
+		unreadMessages: await countUnreadMessages(user.id)
+	};
 };

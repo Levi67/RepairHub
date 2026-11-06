@@ -35,7 +35,17 @@
 						{data.requestCity}
 					</p>
 				</div>
-				<StatusBadge status={order.status} label={orderStatusLabels[order.status]} />
+				<div class="flex items-center gap-3">
+					{#if data.conversationId}
+						<a
+							href="/nachrichten/{data.conversationId}"
+							class="rounded-md border border-stone-300 px-3 py-1 text-sm font-medium hover:border-emerald-500"
+						>
+							Chat
+						</a>
+					{/if}
+					<StatusBadge status={order.status} label={orderStatusLabels[order.status]} />
+				</div>
 			</div>
 
 			<dl class="mt-6 grid gap-4 text-sm sm:grid-cols-2">
@@ -100,7 +110,7 @@
 						{:else}
 							Vereinbare mit {data.repairerName} einen Termin für den Besuch bei dir.
 						{/if}
-						Adressen und Chat folgen in einer späteren Version.
+						Stimmt die Details im Chat ab. Adressen folgen in einer späteren Version.
 					</p>
 				{:else}
 					<p class="mb-3 text-sm text-stone-600">

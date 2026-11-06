@@ -2,9 +2,21 @@
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { enhance } from '$app/forms';
+	import { invalidate } from '$app/navigation';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const UNREAD_POLL_INTERVAL_MS = 30_000;
+	const loggedIn = $derived(Boolean(data.user));
+
+	$effect(() => {
+		if (!loggedIn) return;
+		const timer = setInterval(() => {
+			if (document.visibilityState === 'visible') invalidate('app:unread');
+		}, UNREAD_POLL_INTERVAL_MS);
+		return () => clearInterval(timer);
+	});
 </script>
 
 <svelte:head>
@@ -21,6 +33,17 @@
 				<a href="/profil/meine-anfragen" class="text-sm hover:text-emerald-700">Meine Anfragen</a>
 				<a href="/profil/meine-angebote" class="text-sm hover:text-emerald-700">Meine Angebote</a>
 				<a href="/auftraege" class="text-sm hover:text-emerald-700">Aufträge</a>
+				<a href="/nachrichten" class="flex items-center gap-1 text-sm hover:text-emerald-700">
+					Nachrichten
+					{#if data.unreadMessages}
+						<span
+							class="rounded-full bg-emerald-600 px-1.5 text-xs font-medium text-white"
+							aria-label="{data.unreadMessages} ungelesen"
+						>
+							{data.unreadMessages}
+						</span>
+					{/if}
+				</a>
 			{/if}
 			<div class="ml-auto flex items-center gap-3 text-sm">
 				<a
