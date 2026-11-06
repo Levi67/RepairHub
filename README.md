@@ -8,6 +8,8 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 ## What works so far
 
 - Sign up, log in, log out (email + password)
+- Profile (`/profil`): name, profile picture, PLZ + city, "about me"; public profile at `/nutzer/[id]`
+- Settings (`/profil/einstellungen`): change email and password, email notification preferences (saved, no emails sent yet)
 - Create a repair request (`/anfragen/neu`), with validation
 - Browse and filter open requests by category and keyword (`/anfragen`), detail page
 - Quotes: repairers send a quote on a request, can withdraw it; the customer compares and accepts one

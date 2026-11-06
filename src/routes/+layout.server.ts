@@ -7,7 +7,7 @@ export const load: LayoutServerLoad = async (event) => {
 	const user = event.locals.user;
 	if (!user) return { user: null, unreadMessages: 0 };
 	return {
-		user: { id: user.id, name: user.name },
+		user: { id: user.id, name: user.name, image: user.image ?? null },
 		unreadMessages: await countUnreadMessages(user.id)
 	};
 };

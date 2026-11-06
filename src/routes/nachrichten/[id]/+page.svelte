@@ -3,6 +3,7 @@
 	import { invalidate } from '$app/navigation';
 	import { tick } from 'svelte';
 	import { contactInfoWarning, looksLikeContactInfo } from '#lib/contact.ts';
+	import Avatar from '#lib/components/Avatar.svelte';
 	import type { PageProps } from './$types';
 
 	const POLL_INTERVAL_MS = 5000;
@@ -94,18 +95,26 @@
 <a href="/nachrichten" class="text-sm text-emerald-700 hover:underline">← Alle Nachrichten</a>
 
 <div class="mt-4 flex h-[70vh] flex-col rounded-lg border border-stone-200 bg-white">
-	<header class="border-b border-stone-100 p-4">
-		<div class="font-semibold">{conversation.otherPartyName}</div>
-		<div class="text-sm text-stone-500">
-			<a href="/anfragen/{conversation.requestId}" class="hover:underline">
-				{conversation.requestTitle}
+	<header class="flex items-center gap-3 border-b border-stone-100 p-4">
+		<Avatar name={conversation.otherPartyName} image={conversation.otherPartyImage} />
+		<div class="min-w-0">
+			<a href="/nutzer/{conversation.otherPartyId}" class="font-semibold hover:underline">
+				{conversation.otherPartyName}
 			</a>
-			{#if conversation.bookedOrderId}
-				·
-				<a href="/auftraege/{conversation.bookedOrderId}" class="text-emerald-700 hover:underline">
-					Zum Auftrag
+			<div class="text-sm text-stone-500">
+				<a href="/anfragen/{conversation.requestId}" class="hover:underline">
+					{conversation.requestTitle}
 				</a>
-			{/if}
+				{#if conversation.bookedOrderId}
+					·
+					<a
+						href="/auftraege/{conversation.bookedOrderId}"
+						class="text-emerald-700 hover:underline"
+					>
+						Zum Auftrag
+					</a>
+				{/if}
+			</div>
 		</div>
 	</header>
 

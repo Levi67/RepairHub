@@ -33,6 +33,7 @@ const listColumns = {
 export async function listOpenRequests(filters: {
 	categorySlug?: string;
 	q?: string;
+	customerId?: string;
 	limit?: number;
 }) {
 	const conditions: SQL[] = [
@@ -51,6 +52,8 @@ export async function listOpenRequests(filters: {
 			conditions.push(inArray(repairRequest.categoryId, ids));
 		}
 	}
+
+	if (filters.customerId) conditions.push(eq(repairRequest.customerId, filters.customerId));
 
 	if (filters.q) {
 		const pattern = `%${filters.q.replace(/[%_\\]/g, '\\$&')}%`;

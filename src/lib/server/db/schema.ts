@@ -10,6 +10,7 @@ import {
 	index,
 	uniqueIndex,
 	check,
+	customType,
 	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { user } from './auth.schema';
@@ -46,6 +47,21 @@ export const category = pgTable('category', {
 	slug: text('slug').notNull().unique(),
 	name: text('name').notNull(),
 	sortOrder: integer('sort_order').notNull().default(0)
+});
+
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({
+	dataType: () => 'bytea'
+});
+
+// Profile pictures are small (256 px WebP, max 200 KB), so they live in Postgres until file
+// storage exists. `user.image` points to /api/avatar/<userId>.
+export const userAvatar = pgTable('user_avatar', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	contentType: text('content_type').notNull(),
+	data: bytea('data').notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 });
 
 export const repairRequest = pgTable(

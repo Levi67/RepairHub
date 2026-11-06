@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-11-06T21:21:52.193Z",
+  "specification": {
+    "path": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+    "sha256": "dd8af73b6870bf6c4349afabbac6a38d32918160d357c49799b386f076b6bd68",
+    "bytes": 8489
+  },
+  "artifact": {
+    "path": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+    "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+    "bytes": 861022
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/usr/bin/node",
+        "/home/levi/.claude/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/levi/Developement/RepairHub",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "dd8af73b6870bf6c4349afabbac6a38d32918160d357c49799b386f076b6bd68",
+          "bytes": 8489
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 309,
+      "command": [
+        "/usr/bin/node",
+        "/home/levi/.claude/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/levi/Developement/RepairHub",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "8fd01b71-8d55-479d-bcff-d4ced842b814",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+        "output": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "specification": {
+          "sha256": "dd8af73b6870bf6c4349afabbac6a38d32918160d357c49799b386f076b6bd68",
+          "bytes": 8489
+        },
+        "artifact": {
+          "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+          "bytes": 861022
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "git@github.com:Levi67/RepairHub",
+          "revision": "a3faa5676da3e9ac2d7147f55a9c967506a5fda9",
+          "references": 21,
+          "linkMode": "local-only"
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 119,
+      "command": [
+        "/usr/bin/node",
+        "/home/levi/.claude/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "artifact": {
+          "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+          "bytes": 861022
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 15,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 24,
+            "minInteriorSegmentPx": 48.1,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 10,
+            "emptyTopRatio": 0.015,
+            "occupiedTop": 10,
+            "viewBoxTop": 0,
+            "canvasHeight": 682,
+            "typicalNodeHeight": 64,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1218.75,
+            "actualBudgetPx": 1218.75,
+            "actualReaderWidth": 1248.75,
+            "desiredReaderWidth": 1248.75,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "login",
+              "from": "user",
+              "to": "auth"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 39
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "8fd01b71-8d55-479d-bcff-d4ced842b814"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 14,
+      "command": [
+        "/usr/bin/node",
+        "/home/levi/.claude/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "8fd01b71-8d55-479d-bcff-d4ced842b814",
+        "artifact": {
+          "path": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+          "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+          "bytes": 861022
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "repairhub.browser-check.json",
+          "files": []
+        },
+        "error": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.finalize.json",
+    "summaryReceipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.finalize-summary.json",
+    "browserCheckReceipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-11-06T21:21:52.719Z",
+  "durationMs": 525,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-06T21:21:52.253Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

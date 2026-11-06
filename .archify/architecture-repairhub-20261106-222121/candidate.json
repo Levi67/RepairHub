@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "How RepairHub works",
+    "output": ".archify/architecture-repairhub-20261106-222121/repairhub.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:Levi67/RepairHub.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "a3faa5676da3e9ac2d7147f55a9c967506a5fda9"
+    }
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User (browser)",
+      "sublabel": "customer or repairer",
+      "tag": "one account type",
+      "icon": "person",
+      "pos": [40, 40],
+      "size": [150, 554]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Better Auth",
+      "sublabel": "email + password, cookie",
+      "tag": "hooks → locals.user",
+      "pos": [730, 40],
+      "size": [180, 64],
+      "sources": [
+        { "path": "src/lib/server/auth.ts", "line": 8, "end_line": 16, "label": "betterAuth config" },
+        { "path": "src/hooks.server.ts", "line": 6, "end_line": 17, "label": "session on every request" }
+      ]
+    },
+    {
+      "id": "requests-page",
+      "type": "frontend",
+      "label": "Requests pages",
+      "sublabel": "/anfragen, /anfragen/neu",
+      "pos": [360, 170],
+      "size": [190, 64],
+      "sources": [
+        { "path": "src/routes/anfragen/+page.server.ts", "line": 1, "end_line": 13, "label": "browse + filter" },
+        { "path": "src/routes/anfragen/neu/+page.server.ts", "line": 13, "end_line": 39, "label": "create action" }
+      ]
+    },
+    {
+      "id": "detail-page",
+      "type": "frontend",
+      "label": "Request detail",
+      "sublabel": "/anfragen/[id]",
+      "tag": "quote · ask · accept",
+      "pos": [360, 290],
+      "size": [190, 64],
+      "sources": [
+        { "path": "src/routes/anfragen/[id]/+page.server.ts", "line": 44, "end_line": 114, "label": "quote/ask/withdraw/accept" }
+      ]
+    },
+    {
+      "id": "orders-page",
+      "type": "frontend",
+      "label": "Orders pages",
+      "sublabel": "/auftraege/[id]",
+      "tag": "start · repaired · confirm",
+      "pos": [360, 410],
+      "size": [190, 64],
+      "sources": [
+        { "path": "src/routes/auftraege/[id]/+page.server.ts", "line": 46, "end_line": 58, "label": "status actions" }
+      ]
+    },
+    {
+      "id": "chat-page",
+      "type": "frontend",
+      "label": "Chat",
+      "sublabel": "/nachrichten/[id]",
+      "tag": "polls every 5 s",
+      "pos": [360, 530],
+      "size": [190, 64],
+      "sources": [
+        { "path": "src/routes/nachrichten/[id]/+page.svelte", "line": 31, "end_line": 73, "label": "poll + catch-up" },
+        { "path": "src/routes/nachrichten/[id]/+page.server.ts", "line": 29, "end_line": 48, "label": "send action" },
+        { "path": "src/routes/api/conversations/[id]/messages/+server.ts", "line": 7, "end_line": 23, "label": "GET ?after=" }
+      ]
+    },
+    {
+      "id": "requests-mod",
+      "type": "backend",
+      "label": "requests.ts",
+      "sublabel": "list, get, create",
+      "pos": [730, 170],
+      "size": [180, 64],
+      "sources": [
+        { "path": "src/lib/server/requests.ts", "line": 33, "end_line": 70, "label": "listOpenRequests" },
+        { "path": "src/lib/server/requests.ts", "line": 90, "end_line": 124, "label": "createRequest" }
+      ]
+    },
+    {
+      "id": "quotes-mod",
+      "type": "backend",
+      "label": "quotes.ts",
+      "sublabel": "create, withdraw, list",
+      "tag": "opens a chat",
+      "pos": [730, 290],
+      "size": [180, 64],
+      "sources": [
+        { "path": "src/lib/server/quotes.ts", "line": 10, "end_line": 49, "label": "createQuote + ensureConversation" },
+        { "path": "src/lib/server/quotes.ts", "line": 75, "end_line": 106, "label": "listQuotesForRequest" }
+      ]
+    },
+    {
+      "id": "orders-mod",
+      "type": "backend",
+      "label": "orders.ts",
+      "sublabel": "accept + status changes",
+      "tag": "locked transactions",
+      "pos": [730, 410],
+      "size": [180, 64],
+      "sources": [
+        { "path": "src/lib/server/orders.ts", "line": 27, "end_line": 85, "label": "acceptQuote (payment skipped)" },
+        { "path": "src/lib/server/orders.ts", "line": 93, "end_line": 134, "label": "transition()" },
+        { "path": "src/lib/server/orders.ts", "line": 185, "end_line": 206, "label": "cancelOrder reopens" }
+      ]
+    },
+    {
+      "id": "chat-mod",
+      "type": "backend",
+      "label": "conversations.ts",
+      "sublabel": "send, list, mark read",
+      "tag": "flags contact info",
+      "pos": [730, 530],
+      "size": [180, 64],
+      "sources": [
+        { "path": "src/lib/server/conversations.ts", "line": 122, "end_line": 165, "label": "listMessages + sendMessage" },
+        { "path": "src/lib/server/conversations.ts", "line": 166, "end_line": 226, "label": "markRead + unread count" }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "Drizzle ORM",
+      "tag": "Supabase Frankfurt",
+      "pos": [1100, 40],
+      "size": [160, 554],
+      "sources": [
+        { "path": "src/lib/server/db/index.ts", "line": 1, "end_line": 11, "label": "postgres-js client" },
+        { "path": "src/lib/server/db/schema.ts", "line": 43, "end_line": 220, "label": "app tables" },
+        { "path": "src/lib/server/db/auth.schema.ts", "line": 4, "end_line": 35, "label": "user + session" }
+      ]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Svelte 5 pages (SSR + hydrated)", "wraps": ["requests-page", "detail-page", "orders-page", "chat-page"] },
+    { "kind": "region", "label": "SvelteKit server on Vercel", "wraps": ["auth", "requests-mod", "quotes-mod", "orders-mod", "chat-mod"] }
+  ],
+  "connections": [
+    { "id": "login", "from": "user", "to": "auth", "label": "sign up / log in", "variant": "security" },
+    { "id": "browse", "from": "user", "to": "requests-page", "label": "post or browse", "variant": "emphasis" },
+    { "id": "open-detail", "from": "user", "to": "detail-page", "label": "quote / accept", "variant": "emphasis" },
+    { "id": "track-order", "from": "user", "to": "orders-page", "label": "move order on", "variant": "emphasis" },
+    { "id": "write-chat", "from": "user", "to": "chat-page", "label": "write messages", "variant": "emphasis" },
+    { "id": "req-calls", "from": "requests-page", "to": "requests-mod", "label": "load / create" },
+    { "id": "quote-calls", "from": "detail-page", "to": "quotes-mod", "label": "send / withdraw" },
+    { "id": "accept-call", "from": "detail-page", "to": "orders-mod", "label": "accept" },
+    { "id": "order-calls", "from": "orders-page", "to": "orders-mod", "label": "transition" },
+    { "id": "chat-calls", "from": "chat-page", "to": "chat-mod", "label": "send + poll" },
+    { "id": "auth-db", "from": "auth", "to": "db", "label": "user, session" },
+    { "id": "req-db", "from": "requests-mod", "to": "db", "label": "repair_request" },
+    { "id": "quote-db", "from": "quotes-mod", "to": "db", "label": "quote" },
+    { "id": "order-db", "from": "orders-mod", "to": "db", "label": "order, events" },
+    { "id": "chat-db", "from": "chat-mod", "to": "db", "label": "message" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main journey",
+      "items": [
+        "Customer posts a request; it stays open 30 days",
+        "Repairer sends a quote, which also opens a chat",
+        "Customer accepts: order is created as paid (Stripe not built yet), other quotes rejected",
+        "Order: paid → in progress → repaired → completed"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Cancelling",
+      "items": [
+        "Either side can cancel while the order is paid",
+        "Request goes back to open and rejected quotes become pending again"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Chat",
+      "items": [
+        "One conversation per request and repairer; repairers can also start one with a question",
+        "Open chat polls every 5 s and on tab focus; header unread badge refreshes every 30 s",
+        "Contact details before booking: warning shown, message flagged, not blocked"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Not built yet",
+      "items": [
+        "Stripe payments and payouts, photo uploads, email notifications",
+        "Cron jobs for expiry and auto-confirm, reviews, admin panel"
+      ]
+    }
+  ]
+}

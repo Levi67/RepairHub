@@ -78,6 +78,7 @@ export async function listQuotesForRequest(requestId: string) {
 			...quoteColumns,
 			repairerId: quote.repairerId,
 			repairerName: user.name,
+			repairerImage: user.image,
 			orderStatus: order.status,
 			conversationId: conversation.id
 		})

@@ -3,6 +3,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
+	import Avatar from '#lib/components/Avatar.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -53,7 +54,14 @@
 					Anfrage erstellen
 				</a>
 				{#if data.user}
-					<span class="hidden text-stone-600 sm:inline">Hallo, {data.user.name}</span>
+					<a
+						href="/profil"
+						class="flex items-center gap-2 text-stone-600 hover:text-emerald-700"
+						title="Mein Profil"
+					>
+						<Avatar name={data.user.name} image={data.user.image} size="sm" />
+						<span class="hidden sm:inline">{data.user.name}</span>
+					</a>
 					<form method="post" action="/abmelden" use:enhance>
 						<button class="hover:text-emerald-700">Abmelden</button>
 					</form>

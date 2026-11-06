@@ -4,6 +4,7 @@
 	import { formatCents } from '#lib/money.ts';
 	import { handoverLabels } from '#lib/handover.ts';
 	import { quoteDisplayStatus, requestStatusLabels } from '#lib/status.ts';
+	import Avatar from '#lib/components/Avatar.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
 
@@ -63,7 +64,9 @@
 	</div>
 	<h1 class="mt-1 text-2xl font-bold">{request.title}</h1>
 	<p class="mt-1 text-sm text-stone-500">
-		von {request.customerName} · {request.createdAt.toLocaleDateString('de-DE')} · {request.plz}
+		von <a href="/nutzer/{request.customerId}" class="hover:underline">{request.customerName}</a> · {request.createdAt.toLocaleDateString(
+			'de-DE'
+		)} · {request.plz}
 		{request.city}
 	</p>
 
@@ -116,7 +119,13 @@
 					{@const display = quoteDisplayStatus(q, now)}
 					<div class="rounded-lg border border-stone-200 bg-white p-4">
 						<div class="mb-2 flex items-center justify-between gap-2">
-							<span class="font-medium">{q.repairerName}</span>
+							<a
+								href="/nutzer/{q.repairerId}"
+								class="flex items-center gap-2 font-medium hover:underline"
+							>
+								<Avatar name={q.repairerName} image={q.repairerImage} size="sm" />
+								{q.repairerName}
+							</a>
 							<div class="flex items-center gap-3">
 								{#if q.conversationId}
 									<a

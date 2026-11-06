@@ -10,6 +10,19 @@ export const auth = betterAuth({
 	secret: BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'pg' }),
 	emailAndPassword: { enabled: true },
+	user: {
+		// Profile fields (Technical.md 6.1). `input: false`: only our own validated actions write them,
+		// not Better Auth's public sign-up / update-user endpoints.
+		additionalFields: {
+			bio: { type: 'string', required: false, input: false },
+			plz: { type: 'string', required: false, input: false },
+			city: { type: 'string', required: false, input: false },
+			notificationPrefs: { type: 'json', required: false, input: false }
+		},
+		// Unverified emails can be changed directly. Once email verification exists, verified
+		// users will need a confirmation email instead.
+		changeEmail: { enabled: true, updateEmailWithoutVerification: true }
+	},
 	plugins: [
 		sveltekitCookies(getRequestEvent) // make sure this is the last plugin in the array
 	]

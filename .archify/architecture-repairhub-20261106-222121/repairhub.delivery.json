@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "673ce56c-6e72-4a4b-afb2-8d173caaac97",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+  "output": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+  "specification": {
+    "sha256": "dd8af73b6870bf6c4349afabbac6a38d32918160d357c49799b386f076b6bd68",
+    "bytes": 8489
+  },
+  "artifact": {
+    "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+    "bytes": 861022
+  }
+}

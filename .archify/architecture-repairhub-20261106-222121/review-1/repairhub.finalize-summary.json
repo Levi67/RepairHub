@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/candidate.json",
+    "sha256": "dd8af73b6870bf6c4349afabbac6a38d32918160d357c49799b386f076b6bd68",
+    "bytes": 8489
+  },
+  "artifact": {
+    "path": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/repairhub.html",
+    "sha256": "e6f8d7ad89a4b83c8808861fd25a7711ebedabf3a944903de2d1402eb65f24a4",
+    "bytes": 861022
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/review-1/repairhub.finalize.json",
+    "summaryReceipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/review-1/repairhub.finalize-summary.json",
+    "browserCheckReceipt": "/home/levi/Developement/RepairHub/.archify/architecture-repairhub-20261106-222121/review-1/repairhub.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-06T21:21:52.253Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2818,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

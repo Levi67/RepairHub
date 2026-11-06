@@ -95,7 +95,9 @@ export async function getConversationForUser(conversationId: string, userId: str
 			customerId: conversation.customerId,
 			requestTitle: repairRequest.title,
 			customerName: customer.name,
-			repairerName: repairer.name
+			repairerName: repairer.name,
+			customerImage: customer.image,
+			repairerImage: repairer.image
 		})
 		.from(conversation)
 		.innerJoin(repairRequest, eq(conversation.requestId, repairRequest.id))
@@ -110,7 +112,9 @@ export async function getConversationForUser(conversationId: string, userId: str
 		requestId: row.requestId,
 		requestTitle: row.requestTitle,
 		role,
+		otherPartyId: role === 'customer' ? row.repairerId : row.customerId,
 		otherPartyName: role === 'customer' ? row.repairerName : row.customerName,
+		otherPartyImage: role === 'customer' ? row.repairerImage : row.customerImage,
 		bookedOrderId: await findBookedOrderId(row.requestId, row.repairerId)
 	};
 }

@@ -2,12 +2,16 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { fieldErrors } from '#lib/schemas/form.ts';
 import { repairRequestSchema } from '#lib/schemas/request.ts';
+import { getOwnProfile } from '#lib/server/profiles.ts';
 import { createRequest, listCategoryTree } from '#lib/server/requests.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 
 export const load: PageServerLoad = async (event) => {
-	if (!event.locals.user) return redirect(302, loginUrl(event.url));
-	return { categories: await listCategoryTree() };
+	const user = event.locals.user;
+	if (!user) return redirect(302, loginUrl(event.url));
+	const [categories, profile] = await Promise.all([listCategoryTree(), getOwnProfile(user.id)]);
+	// Location from the profile as a starting point; the customer can change it per request.
+	return { categories, defaultPlz: profile?.plz ?? '', defaultCity: profile?.city ?? '' };
 };
 
 export const actions: Actions = {

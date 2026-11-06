@@ -51,11 +51,17 @@
 			<dl class="mt-6 grid gap-4 text-sm sm:grid-cols-2">
 				<div>
 					<dt class="text-stone-500">Auftraggeber</dt>
-					<dd>{data.customerName}{isCustomer ? ' (du)' : ''}</dd>
+					<dd>
+						<a href="/nutzer/{data.order.customerId}" class="hover:underline">{data.customerName}</a
+						>{isCustomer ? ' (du)' : ''}
+					</dd>
 				</div>
 				<div>
 					<dt class="text-stone-500">Reparateur</dt>
-					<dd>{data.repairerName}{isCustomer ? '' : ' (du)'}</dd>
+					<dd>
+						<a href="/nutzer/{data.order.repairerId}" class="hover:underline">{data.repairerName}</a
+						>{isCustomer ? '' : ' (du)'}
+					</dd>
 				</div>
 				<div>
 					<dt class="text-stone-500">Übergabe</dt>

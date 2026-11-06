@@ -121,7 +121,7 @@
 					inputmode="numeric"
 					pattern={'[0-9]{5}'}
 					maxlength="5"
-					value={values?.plz ?? ''}
+					value={values?.plz ?? data.defaultPlz}
 					class="mt-1 w-full rounded-md border-stone-300"
 				/>
 				{@render error('plz')}
@@ -131,7 +131,7 @@
 				<input
 					name="city"
 					required
-					value={values?.city ?? ''}
+					value={values?.city ?? data.defaultCity}
 					class="mt-1 w-full rounded-md border-stone-300"
 				/>
 				{@render error('city')}
