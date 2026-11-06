@@ -9,9 +9,11 @@ const QUOTE_VALIDITY_DAYS = 7;
 
 export async function createQuote(repairerId: string, requestId: string, input: QuoteInput) {
 	const request = await db.query.repairRequest.findFirst({
-		where: eq(repairRequest.id, requestId)
+		where: eq(repairRequest.id, requestId),
+		with: { customer: { columns: { bannedAt: true } } }
 	});
 	if (!request) throw new DomainError('Anfrage nicht gefunden.');
+	if (request.customer.bannedAt) throw new DomainError('Diese Anfrage ist nicht mehr verfügbar.');
 	if (request.customerId === repairerId) {
 		throw new DomainError('Du kannst kein Angebot auf deine eigene Anfrage abgeben.');
 	}
@@ -79,6 +81,7 @@ export async function listQuotesForRequest(requestId: string) {
 			repairerId: quote.repairerId,
 			repairerName: user.name,
 			repairerImage: user.image,
+			repairerBanned: sql<boolean>`${user.bannedAt} is not null`,
 			orderStatus: order.status,
 			conversationId: conversation.id
 		})

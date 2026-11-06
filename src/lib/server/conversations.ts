@@ -29,7 +29,8 @@ export async function ensureConversation(
 /** A repairer opens a chat on a request, e.g. to ask a question before quoting. */
 export async function startConversation(repairerId: string, requestId: string) {
 	const request = await db.query.repairRequest.findFirst({
-		where: eq(repairRequest.id, requestId)
+		where: eq(repairRequest.id, requestId),
+		with: { customer: { columns: { bannedAt: true } } }
 	});
 	if (!request) throw new DomainError('Anfrage nicht gefunden.');
 	if (request.customerId === repairerId) {
@@ -39,7 +40,7 @@ export async function startConversation(repairerId: string, requestId: string) {
 	const existing = await getConversationIdFor(requestId, repairerId);
 	if (existing) return existing;
 
-	if (request.status !== 'open' || request.expiresAt <= new Date()) {
+	if (request.status !== 'open' || request.expiresAt <= new Date() || request.customer.bannedAt) {
 		throw new DomainError('Diese Anfrage ist nicht mehr offen.');
 	}
 	return ensureConversation(db, request, repairerId);

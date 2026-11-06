@@ -1,4 +1,17 @@
-import { and, asc, count, desc, eq, gt, ilike, or, inArray, type SQL } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gt,
+	ilike,
+	isNull,
+	or,
+	inArray,
+	sql,
+	type SQL
+} from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { category, quote, repairRequest, user } from '#lib/server/db/schema.ts';
 import type { HandoverMode } from '#lib/handover.ts';
@@ -38,7 +51,9 @@ export async function listOpenRequests(filters: {
 }) {
 	const conditions: SQL[] = [
 		eq(repairRequest.status, 'open'),
-		gt(repairRequest.expiresAt, new Date())
+		gt(repairRequest.expiresAt, new Date()),
+		// Requests of banned users are hidden (Technical.md 9), and come back on unban.
+		isNull(user.bannedAt)
 	];
 
 	if (filters.categorySlug) {
@@ -66,6 +81,7 @@ export async function listOpenRequests(filters: {
 		.select(listColumns)
 		.from(repairRequest)
 		.innerJoin(category, eq(repairRequest.categoryId, category.id))
+		.innerJoin(user, eq(repairRequest.customerId, user.id))
 		.where(and(...conditions))
 		.orderBy(desc(repairRequest.createdAt))
 		.limit(filters.limit ?? 50);
@@ -81,7 +97,8 @@ export async function getRequest(id: string) {
 			status: repairRequest.status,
 			expiresAt: repairRequest.expiresAt,
 			customerId: repairRequest.customerId,
-			customerName: user.name
+			customerName: user.name,
+			customerBanned: sql<boolean>`${user.bannedAt} is not null`
 		})
 		.from(repairRequest)
 		.innerJoin(category, eq(repairRequest.categoryId, category.id))

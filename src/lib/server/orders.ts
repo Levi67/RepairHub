@@ -27,9 +27,10 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export async function acceptQuote(customerId: string, quoteId: string): Promise<string> {
 	return db.transaction(async (tx) => {
 		const [row] = await tx
-			.select({ quote, request: repairRequest })
+			.select({ quote, request: repairRequest, repairerBannedAt: user.bannedAt })
 			.from(quote)
 			.innerJoin(repairRequest, eq(quote.requestId, repairRequest.id))
+			.innerJoin(user, eq(quote.repairerId, user.id))
 			.where(eq(quote.id, quoteId))
 			.for('update');
 
@@ -41,6 +42,9 @@ export async function acceptQuote(customerId: string, quoteId: string): Promise<
 		}
 		if (row.request.status !== 'open') {
 			throw new DomainError('Für diese Anfrage wurde bereits ein Angebot angenommen.');
+		}
+		if (row.repairerBannedAt) {
+			throw new DomainError('Dieser Reparateur ist gesperrt. Bitte wähle ein anderes Angebot.');
 		}
 
 		await tx

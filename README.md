@@ -16,6 +16,7 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
 - „Meine Anfragen“ and „Meine Angebote“ overview pages
 - Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
+- Admin area (`/admin`, admins only): dashboard with users, requests, orders, GMV and commission (also per week); user search, ban/unban, make/remove admin; categories: rename, reorder, add, delete unused
 - Landing page, Impressum/Datenschutz placeholders
 - Category tree seeded via migration
 
@@ -42,6 +43,7 @@ Useful scripts:
 | `pnpm db:migrate`                | Apply migrations to `DATABASE_URL`                              |
 | `pnpm db:studio`                 | Browse the database in the browser                              |
 | `pnpm auth:schema`               | Regenerate the Better Auth tables after changing `auth.ts`      |
+| `pnpm admin:grant <email>`       | Make an existing account an admin (the first admin needs this)  |
 
 ## Deploying a test server (Vercel + Supabase)
 

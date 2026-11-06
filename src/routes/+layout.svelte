@@ -45,6 +45,9 @@
 						</span>
 					{/if}
 				</a>
+				{#if data.user.isAdmin}
+					<a href="/admin" class="text-sm font-medium text-amber-700 hover:text-amber-800">Admin</a>
+				{/if}
 			{/if}
 			<div class="ml-auto flex items-center gap-3 text-sm">
 				<a

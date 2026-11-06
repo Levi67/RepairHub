@@ -14,6 +14,14 @@
 <svelte:head><title>{profile.name} – RepairHub</title></svelte:head>
 
 <div class="space-y-8">
+	{#if profile.bannedAt}
+		<p class="rounded-lg bg-red-50 p-4 text-sm text-red-800">
+			Gesperrt seit {profile.bannedAt.toLocaleDateString('de-DE')}. Nur Admins sehen dieses Profil.
+			<a href="/admin/nutzer?q={encodeURIComponent(profile.name)}" class="font-medium underline">
+				In der Nutzerverwaltung öffnen
+			</a>
+		</p>
+	{/if}
 	<section
 		class="flex flex-wrap items-center gap-6 rounded-lg border border-stone-200 bg-white p-6"
 	>

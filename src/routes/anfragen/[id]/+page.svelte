@@ -14,7 +14,10 @@
 	const errors = $derived<Record<string, string>>(form?.errors ?? {});
 
 	const now = new Date();
-	const isOpen = $derived(request.status === 'open' && request.expiresAt > now);
+	// A banned customer's request stays visible to people already involved, but takes no new quotes.
+	const isOpen = $derived(
+		request.status === 'open' && request.expiresAt > now && !request.customerBanned
+	);
 	const ownQuoteIsActive = $derived(
 		data.ownQuote?.status === 'pending' && data.ownQuote.validUntil > now
 	);
@@ -139,7 +142,11 @@
 							</div>
 						</div>
 						{@render quoteDetails(q)}
-						{#if display.status === 'pending' && isOpen}
+						{#if q.repairerBanned}
+							<p class="mt-3 border-t border-stone-100 pt-3 text-sm text-stone-500">
+								Dieser Reparateur wurde gesperrt. Das Angebot kann nicht angenommen werden.
+							</p>
+						{:else if display.status === 'pending' && isOpen}
 							<div
 								class="mt-3 flex items-center justify-between gap-2 border-t border-stone-100 pt-3"
 							>

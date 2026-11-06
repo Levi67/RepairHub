@@ -18,6 +18,9 @@ export const actions: Actions = {
 		try {
 			await auth.api.signInEmail({ body: { email, password } });
 		} catch (error) {
+			if (error instanceof APIError && error.body?.code === 'BANNED_USER') {
+				return fail(403, { email, message: 'Dieses Konto wurde gesperrt.' });
+			}
 			if (error instanceof APIError) {
 				return fail(400, { email, message: 'E-Mail oder Passwort ist falsch.' });
 			}

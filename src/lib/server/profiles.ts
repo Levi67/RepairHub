@@ -92,7 +92,8 @@ export async function getPublicProfile(userId: string) {
 			plz: user.plz,
 			city: user.city,
 			bio: user.bio,
-			createdAt: user.createdAt
+			createdAt: user.createdAt,
+			bannedAt: user.bannedAt
 		})
 		.from(user)
 		.where(eq(user.id, userId));

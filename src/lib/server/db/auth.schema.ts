@@ -15,7 +15,9 @@ export const user = pgTable('user', {
 	bio: text('bio'),
 	plz: text('plz'),
 	city: text('city'),
-	notificationPrefs: jsonb('notification_prefs')
+	notificationPrefs: jsonb('notification_prefs'),
+	isAdmin: boolean('is_admin').default(false).notNull(),
+	bannedAt: timestamp('banned_at')
 });
 
 export const session = pgTable(
