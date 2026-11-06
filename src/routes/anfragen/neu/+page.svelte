@@ -119,7 +119,7 @@
 					name="plz"
 					required
 					inputmode="numeric"
-					pattern="\d{5}"
+					pattern={'[0-9]{5}'}
 					maxlength="5"
 					value={values?.plz ?? ''}
 					class="mt-1 w-full rounded-md border-stone-300"
