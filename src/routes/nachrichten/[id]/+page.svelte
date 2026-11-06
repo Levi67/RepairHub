@@ -12,8 +12,14 @@
 
 	type Message = (typeof data.messages)[number];
 
-	// Starts from the server data and grows with polled messages until the next load.
-	let messages = $derived(data.messages);
+	// Messages fetched by polling since the last page load. Kept apart from `data.messages`,
+	// because other reloads (e.g. the header badge) hand us a new `data` and must not drop them.
+	let polled = $state<Message[]>([]);
+	const messages = $derived.by(() => {
+		const known = new Set(data.messages.map((m) => m.id));
+		return [...data.messages, ...polled.filter((m) => !known.has(m.id))];
+	});
+
 	let body = $state('');
 	let sending = $state(false);
 	let list = $state<HTMLElement>();
@@ -21,29 +27,49 @@
 
 	const showContactWarning = $derived(!conversation.bookedOrderId && looksLikeContactInfo(body));
 
+	let polling = false;
 	async function poll() {
-		if (document.visibilityState !== 'visible') return;
-		const last = messages.at(-1);
-		const query = last ? `?after=${encodeURIComponent(last.createdAt.toISOString())}` : '';
-		const response = await fetch(`/api/conversations/${conversation.id}/messages${query}`);
-		if (!response.ok) return;
+		if (polling || document.visibilityState !== 'visible') return;
+		polling = true;
+		try {
+			const last = messages.at(-1);
+			const query = last ? `?after=${encodeURIComponent(last.createdAt.toISOString())}` : '';
+			const response = await fetch(`/api/conversations/${conversation.id}/messages${query}`, {
+				cache: 'no-store'
+			});
+			if (!response.ok) return;
 
-		const { messages: incoming } = (await response.json()) as {
-			messages: (Omit<Message, 'createdAt'> & { createdAt: string })[];
-		};
-		const known = new Set(messages.map((m) => m.id));
-		const fresh = incoming
-			.filter((m) => !known.has(m.id))
-			.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
-		if (fresh.length) messages = [...messages, ...fresh];
+			const { messages: incoming } = (await response.json()) as {
+				messages: (Omit<Message, 'createdAt'> & { createdAt: string })[];
+			};
+			const known = new Set(messages.map((m) => m.id));
+			const fresh = incoming
+				.filter((m) => !known.has(m.id))
+				.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
+			if (fresh.length) polled = [...polled, ...fresh];
+		} catch {
+			// Offline or server hiccup: try again on the next tick.
+		} finally {
+			polling = false;
+		}
 	}
 
 	$effect(() => {
-		// Opening a chat marks it as read on the server; refresh the header badge.
 		void conversation.id;
+		polled = [];
+		// Opening a chat marks it as read on the server; refresh the header badge.
 		invalidate('app:unread');
+
 		const timer = setInterval(poll, POLL_INTERVAL_MS);
-		return () => clearInterval(timer);
+		// Hidden tabs don't poll, so catch up right away when the chat is looked at again.
+		const catchUp = () => poll();
+		document.addEventListener('visibilitychange', catchUp);
+		window.addEventListener('focus', catchUp);
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', catchUp);
+			window.removeEventListener('focus', catchUp);
+		};
 	});
 
 	// Keep the newest message in view.
