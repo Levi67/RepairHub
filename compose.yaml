@@ -1,0 +1,15 @@
+# Local development database. Production uses Supabase (Postgres + PostGIS).
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: repairhub
+      POSTGRES_PASSWORD: repairhub
+      POSTGRES_DB: repairhub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
