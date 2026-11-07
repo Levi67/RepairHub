@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { requestStatusLabels } from '#lib/status.ts';
+	import { requestDisplayStatus, requestStatusLabels } from '#lib/status.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
 
@@ -19,7 +19,7 @@
 {#if data.requests.length}
 	<div class="space-y-2">
 		{#each data.requests as r (r.id)}
-			{@const status = r.status === 'open' && r.expiresAt <= now ? 'expired' : r.status}
+			{@const status = requestDisplayStatus(r, now)}
 			<a
 				href="/anfragen/{r.id}"
 				class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stone-200 bg-white p-4 hover:border-emerald-400"

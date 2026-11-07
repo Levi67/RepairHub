@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-import { getRequest } from '#lib/server/requests.ts';
+import { closeRequest, getRequest, renewRequest } from '#lib/server/requests.ts';
 import {
 	createQuote,
 	getLatestOwnQuote,
@@ -42,6 +42,28 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	close: async (event) => {
+		const user = event.locals.user;
+		if (!user) return redirect(302, loginUrl(event.url));
+		try {
+			await closeRequest(event.params.id, user.id);
+		} catch (e) {
+			return failOnDomainError(e);
+		}
+		return { closed: true };
+	},
+
+	renew: async (event) => {
+		const user = event.locals.user;
+		if (!user) return redirect(302, loginUrl(event.url));
+		try {
+			await renewRequest(event.params.id, user.id);
+		} catch (e) {
+			return failOnDomainError(e);
+		}
+		return { renewed: true };
+	},
+
 	quote: async (event) => {
 		const user = event.locals.user;
 		if (!user) return redirect(302, loginUrl(event.url));

@@ -17,3 +17,9 @@ export function parseEuroToCents(input: string): number | null {
 export function commissionCents(priceCents: number, rateBp: number): number {
 	return Math.round((priceCents * rateBp) / 10_000);
 }
+
+/** Cents as a value for a form input that `parseEuroToCents` reads back, e.g. "50" or "49,90". */
+export function centsToInput(cents: number | null): string {
+	if (cents === null) return '';
+	return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2).replace('.', ',');
+}

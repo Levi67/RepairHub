@@ -10,7 +10,8 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Sign up, log in, log out (email + password)
 - Profile (`/profil`): name, profile picture, PLZ + city, "about me"; public profile at `/nutzer/[id]`
 - Settings (`/profil/einstellungen`): change email and password, email notification preferences (saved, no emails sent yet)
-- Create a repair request (`/anfragen/neu`), with validation
+- Create a repair request (`/anfragen/neu`) with 1–8 photos and an optional timeframe. Photos are shrunk to WebP in the browser (JPEG in Safari) and uploaded straight to Supabase Storage
+- Edit a request (`/anfragen/[id]/bearbeiten`): everything until the first quote, after that only a dated note ("Nachtrag") and more photos. Withdraw a request (open quotes are rejected), renew it for 30 days once it has expired or has 3 days left
 - Browse and filter open requests by category and keyword (`/anfragen`), detail page
 - Quotes: repairers send a quote on a request, can withdraw it; the customer compares and accepts one
 - Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
@@ -29,8 +30,11 @@ pnpm install
 cp .env.example .env        # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
 pnpm db:start               # Postgres + PostGIS in Docker
 pnpm db:migrate             # create tables + seed categories
+pnpm storage:setup          # once: create the photo bucket (needs the Supabase keys in .env, see below)
 pnpm dev                    # http://localhost:5173
 ```
+
+**Photos:** Docker has no file storage, so local development also uploads to the Supabase project, into its own bucket (`STORAGE_BUCKET="request-photos-dev"`). Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (Supabase → Project Settings → API Keys, the secret key) in `.env`. Without them the app runs, but requests can't be created because photos are required.
 
 Useful scripts:
 
@@ -44,6 +48,7 @@ Useful scripts:
 | `pnpm db:studio`                 | Browse the database in the browser                              |
 | `pnpm auth:schema`               | Regenerate the Better Auth tables after changing `auth.ts`      |
 | `pnpm admin:grant <email>`       | Make an existing account an admin (the first admin needs this)  |
+| `pnpm storage:setup`             | Create/update the public photo bucket `STORAGE_BUCKET`          |
 
 ## Deploying a test server (Vercel + Supabase)
 
@@ -60,6 +65,8 @@ Useful scripts:
    - `DATABASE_URL` = transaction pooler URI
    - `BETTER_AUTH_SECRET` = a new `openssl rand -base64 32`
    - `ORIGIN` = the Vercel URL, e.g. `https://repairhub.vercel.app` (deploy once, copy the URL, set it, redeploy)
+   - `SUPABASE_URL` = `https://<project>.supabase.co`, `SUPABASE_SECRET_KEY` = the secret key. `STORAGE_BUCKET` can stay unset (defaults to `request-photos`)
+   - Create that bucket once from your machine: `SUPABASE_URL=… SUPABASE_SECRET_KEY=… STORAGE_BUCKET=request-photos pnpm storage:setup`
 5. Every push to `main` deploys production, and every other branch gets a preview URL.
 
 Migrations are not run automatically on deploy. Run step 2 again whenever a new migration is added.

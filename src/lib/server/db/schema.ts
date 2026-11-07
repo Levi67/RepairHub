@@ -21,6 +21,8 @@ export const handoverMode = pgEnum('handover_mode', ['shipping', 'dropoff', 'ons
 
 export const requestStatus = pgEnum('request_status', ['open', 'assigned', 'closed', 'expired']);
 
+export const requestTimeframe = pgEnum('request_timeframe', ['flexible', 'within_week', 'urgent']);
+
 export const quoteStatus = pgEnum('quote_status', [
 	'pending',
 	'accepted',
@@ -79,6 +81,7 @@ export const repairRequest = pgTable(
 		brand: text('brand'),
 		model: text('model'),
 		budgetCents: integer('budget_cents'),
+		timeframe: requestTimeframe('timeframe'),
 		handoverModes: handoverMode('handover_modes').array().notNull(),
 		plz: text('plz').notNull(),
 		city: text('city').notNull(),
@@ -94,6 +97,21 @@ export const repairRequest = pgTable(
 		index('repair_request_status_created_idx').on(table.status, table.createdAt),
 		index('repair_request_customer_idx').on(table.customerId)
 	]
+);
+
+// Photos live in Supabase Storage; this table only keeps their paths (Technical.md 6.1).
+export const requestImage = pgTable(
+	'request_image',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		requestId: uuid('request_id')
+			.notNull()
+			.references(() => repairRequest.id, { onDelete: 'cascade' }),
+		storagePath: text('storage_path').notNull().unique(),
+		sortOrder: integer('sort_order').notNull().default(0),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [index('request_image_request_idx').on(table.requestId, table.sortOrder)]
 );
 
 const timestamps = {
@@ -248,9 +266,14 @@ export const categoryRelations = relations(category, ({ one, many }) => ({
 	requests: many(repairRequest)
 }));
 
-export const repairRequestRelations = relations(repairRequest, ({ one }) => ({
+export const repairRequestRelations = relations(repairRequest, ({ one, many }) => ({
 	customer: one(user, { fields: [repairRequest.customerId], references: [user.id] }),
-	category: one(category, { fields: [repairRequest.categoryId], references: [category.id] })
+	category: one(category, { fields: [repairRequest.categoryId], references: [category.id] }),
+	images: many(requestImage)
+}));
+
+export const requestImageRelations = relations(requestImage, ({ one }) => ({
+	request: one(repairRequest, { fields: [requestImage.requestId], references: [repairRequest.id] })
 }));
 
 export const quoteRelations = relations(quote, ({ one }) => ({

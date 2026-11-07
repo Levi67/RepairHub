@@ -47,6 +47,27 @@ export function quoteDisplayStatus(
 	return { status: q.status, label: quoteStatusLabels[q.status] };
 }
 
+/** Requests past `expires_at` count as expired, even before the expiry cron job sets the status. */
+export function requestDisplayStatus(
+	r: { status: RequestStatus; expiresAt: Date },
+	now = new Date()
+): RequestStatus {
+	return r.status === 'open' && r.expiresAt <= now ? 'expired' : r.status;
+}
+
+/** Days before expiry from which the customer may renew a request. */
+export const RENEW_WINDOW_DAYS = 3;
+
+/** Renewing is possible once a request has expired, or shortly before. */
+export function canRenewRequest(
+	r: { status: RequestStatus; expiresAt: Date },
+	now = new Date()
+): boolean {
+	if (r.status === 'expired') return true;
+	const windowStart = r.expiresAt.getTime() - RENEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+	return r.status === 'open' && now.getTime() >= windowStart;
+}
+
 /** Tailwind classes for the small status badges. */
 export function statusTone(status: RequestStatus | QuoteStatus | OrderStatus): string {
 	switch (status) {

@@ -23,6 +23,7 @@
 		"db:migrate": "node --env-file-if-exists=.env ./node_modules/drizzle-kit/bin.cjs migrate",
 		"db:studio": "node --env-file-if-exists=.env ./node_modules/drizzle-kit/bin.cjs studio",
 		"admin:grant": "node --env-file-if-exists=.env scripts/make-admin.js",
+		"storage:setup": "node --env-file-if-exists=.env scripts/setup-storage.js",
 		"auth:schema": "auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
 	},
 	"devDependencies": {

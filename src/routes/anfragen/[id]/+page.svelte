@@ -3,7 +3,13 @@
 	import { page } from '$app/state';
 	import { formatCents } from '#lib/money.ts';
 	import { handoverLabels } from '#lib/handover.ts';
-	import { quoteDisplayStatus, requestStatusLabels } from '#lib/status.ts';
+	import {
+		canRenewRequest,
+		quoteDisplayStatus,
+		requestDisplayStatus,
+		requestStatusLabels
+	} from '#lib/status.ts';
+	import { timeframeLabels } from '#lib/timeframe.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
@@ -14,6 +20,10 @@
 	const errors = $derived<Record<string, string>>(form?.errors ?? {});
 
 	const now = new Date();
+	const displayStatus = $derived(requestDisplayStatus(request, now));
+	const canRenew = $derived(data.isOwner && canRenewRequest(request, now));
+	let activePhoto = $state(0);
+	const photo = $derived(request.photos[Math.min(activePhoto, request.photos.length - 1)]);
 	// A banned customer's request stays visible to people already involved, but takes no new quotes.
 	const isOpen = $derived(
 		request.status === 'open' && request.expiresAt > now && !request.customerBanned
@@ -61,8 +71,8 @@
 		<div class="text-xs font-medium tracking-wide text-emerald-700 uppercase">
 			{request.categoryName}
 		</div>
-		{#if request.status !== 'open'}
-			<StatusBadge status={request.status} label={requestStatusLabels[request.status]} />
+		{#if displayStatus !== 'open'}
+			<StatusBadge status={displayStatus} label={requestStatusLabels[displayStatus]} />
 		{/if}
 	</div>
 	<h1 class="mt-1 text-2xl font-bold">{request.title}</h1>
@@ -72,6 +82,34 @@
 		)} · {request.plz}
 		{request.city}
 	</p>
+
+	{#if photo}
+		<div class="mt-6">
+			<a href={photo.url} target="_blank" rel="noopener" class="block">
+				<img
+					src={photo.url}
+					alt="Foto {activePhoto + 1} von {request.title}"
+					class="max-h-[28rem] w-full rounded-md bg-stone-100 object-contain"
+				/>
+			</a>
+			{#if request.photos.length > 1}
+				<div class="mt-2 flex flex-wrap gap-2">
+					{#each request.photos as p, i (p.path)}
+						<button
+							type="button"
+							onclick={() => (activePhoto = i)}
+							aria-label="Foto {i + 1} anzeigen"
+							class="size-16 overflow-hidden rounded-md border-2 {p === photo
+								? 'border-emerald-500'
+								: 'border-transparent opacity-70 hover:opacity-100'}"
+						>
+							<img src={p.url} alt="" class="size-full object-cover" />
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<p class="mt-6 whitespace-pre-line">{request.description}</p>
 
@@ -92,12 +130,81 @@
 				{request.budgetCents ? `bis ca. ${formatCents(request.budgetCents)}` : 'keine Angabe'}
 			</dd>
 		</div>
+		{#if request.timeframe}
+			<div>
+				<dt class="text-stone-500">Zeitrahmen</dt>
+				<dd>{timeframeLabels[request.timeframe]}</dd>
+			</div>
+		{/if}
 		<div>
-			<dt class="text-stone-500">Läuft ab am</dt>
+			<dt class="text-stone-500">
+				{displayStatus === 'expired' ? 'Abgelaufen am' : 'Läuft ab am'}
+			</dt>
 			<dd>{request.expiresAt.toLocaleDateString('de-DE')}</dd>
 		</div>
 	</dl>
+
+	{#if data.isOwner && (request.status === 'open' || canRenew)}
+		<div class="mt-6 flex flex-wrap items-center gap-3 border-t border-stone-100 pt-6">
+			{#if request.status === 'open'}
+				<a
+					href="/anfragen/{request.id}/bearbeiten"
+					class="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium hover:border-emerald-500"
+				>
+					Bearbeiten
+				</a>
+			{/if}
+			{#if canRenew}
+				<form method="post" action="?/renew" use:enhance>
+					<button
+						class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+					>
+						Um 30 Tage verlängern
+					</button>
+				</form>
+			{/if}
+			{#if request.status === 'open' && !data.orderId}
+				<form
+					method="post"
+					action="?/close"
+					use:enhance={({ cancel }) => {
+						const pending = data.quotes.filter(
+							(q) => quoteDisplayStatus(q, now).status === 'pending'
+						).length;
+						const warning = pending
+							? ` ${pending === 1 ? 'Das offene Angebot wird' : `Die ${pending} offenen Angebote werden`} abgelehnt.`
+							: '';
+						if (
+							!confirm(
+								`Anfrage wirklich zurückziehen?${warning} Das kann nicht rückgängig gemacht werden.`
+							)
+						) {
+							cancel();
+						}
+					}}
+					class="ml-auto"
+				>
+					<button class="text-sm text-stone-500 hover:text-red-600">Anfrage zurückziehen</button>
+				</form>
+			{/if}
+		</div>
+		{#if canRenew && displayStatus === 'open'}
+			<p class="mt-2 text-xs text-stone-500">
+				Deine Anfrage läuft bald ab. Verlängern geht ab 3 Tage vor Ablauf.
+			</p>
+		{/if}
+	{/if}
 </article>
+
+{#if form && 'renewed' in form}
+	<p class="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
+		Verlängert bis {request.expiresAt.toLocaleDateString('de-DE')}.
+	</p>
+{:else if form && 'closed' in form}
+	<p class="mt-4 rounded-md bg-stone-100 p-3 text-sm text-stone-700">
+		Anfrage zurückgezogen. Sie wird nicht mehr gelistet und nimmt keine Angebote mehr an.
+	</p>
+{/if}
 
 {#if form?.message}
 	<p class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{form.message}</p>

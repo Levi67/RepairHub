@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { commissionCents, formatCents, parseEuroToCents } from './money';
+import { centsToInput, commissionCents, formatCents, parseEuroToCents } from './money';
 
 describe('parseEuroToCents', () => {
 	it('parses German formats', () => {
@@ -29,5 +29,14 @@ describe('commissionCents', () => {
 describe('formatCents', () => {
 	it('formats as German euro', () => {
 		expect(formatCents(123450).replace(/\s/g, ' ')).toBe('1.234,50 €');
+	});
+});
+
+describe('centsToInput', () => {
+	it('round-trips through parseEuroToCents', () => {
+		for (const cents of [100, 4990, 123456, 5]) {
+			expect(parseEuroToCents(centsToInput(cents))).toBe(cents);
+		}
+		expect(centsToInput(null)).toBe('');
 	});
 });
