@@ -38,7 +38,7 @@
 		import('leaflet').then((mod) => {
 			if (cancelled) return;
 			L = mod.default ?? mod;
-			created = L.map(container, { scrollWheelZoom: false }).setView([51.2, 10.4], 6);
+			created = L.map(container).setView([51.2, 10.4], 6);
 			L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 				maxZoom: 18,
 				attribution:
