@@ -30,6 +30,11 @@ export const variables = defineEnvVars({
 			'Signing secret (`whsec_…`) of the Stripe webhook endpoint `/api/stripe/webhook` (Connect events).',
 		schema: (value) => value || undefined
 	},
+	REQUIRE_PAYOUT_ACCOUNT: {
+		description:
+			'`true` = repairers need an active Stripe payout account to send quotes (Technical.md 3.5). Off by default, so the whole app can be used for testing without one.',
+		schema: (value) => value === 'true'
+	},
 	STORAGE_BUCKET: {
 		description:
 			'Storage bucket for request photos. Use a separate one for local development, e.g. `request-photos-dev`.',

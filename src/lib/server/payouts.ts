@@ -2,10 +2,16 @@ import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { repairerProfile } from '#lib/server/db/schema.ts';
 import { DomainError } from '#lib/server/errors.ts';
-import { callStripe, stripeEnabled, type Stripe } from '#lib/server/stripe.ts';
+import {
+	callStripe,
+	payoutAccountRequired,
+	stripeEnabled,
+	type Stripe
+} from '#lib/server/stripe.ts';
 
 // "Auszahlungen einrichten": each repairer gets a Stripe Connect Express account and goes through
-// Stripe's hosted onboarding (Technical.md 3.8, 4.3). Only with status `active` can they quote.
+// Stripe's hosted onboarding (Technical.md 3.8, 4.3). The spec makes it required for quoting;
+// here that's only switched on with REQUIRE_PAYOUT_ACCOUNT=true, so the app can be tested without it.
 
 export type PayoutStatus = (typeof repairerProfile.stripeStatus.enumValues)[number];
 
@@ -26,9 +32,9 @@ export async function getPayoutStatus(userId: string): Promise<PayoutStatus> {
 	return row?.stripeStatus ?? 'none';
 }
 
-/** Spec: quotes need an active payout account. Without Stripe on this server, everyone can quote. */
+/** Quotes need an active payout account only when that's switched on (see `payoutAccountRequired`). */
 export async function canSendQuotes(userId: string): Promise<boolean> {
-	if (!stripeEnabled) return true;
+	if (!payoutAccountRequired) return true;
 	return (await getPayoutStatus(userId)) === 'active';
 }
 

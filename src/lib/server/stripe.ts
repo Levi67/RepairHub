@@ -1,10 +1,16 @@
 // Stripe Connect in test mode (Technical.md 3.8). Without STRIPE_SECRET_KEY the app runs without
 // Stripe: no payout onboarding, and quoting doesn't require it.
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from '$app/env/private';
+import { REQUIRE_PAYOUT_ACCOUNT, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from '$app/env/private';
 import { DomainError } from '#lib/server/errors.ts';
 
 export const stripeEnabled = Boolean(STRIPE_SECRET_KEY);
+
+/**
+ * Whether quoting needs an active payout account. Off unless REQUIRE_PAYOUT_ACCOUNT=true, so
+ * everyone can test the whole app without going through Stripe's onboarding.
+ */
+export const payoutAccountRequired = stripeEnabled && REQUIRE_PAYOUT_ACCOUNT;
 
 let client: Stripe | undefined;
 

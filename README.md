@@ -15,7 +15,7 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Browse and filter open requests by category and keyword (`/anfragen`), detail page. Distance search: PLZ + radius, distance on every card, list/map toggle (Leaflet + OpenStreetMap). PLZ data from GeoNames
 - Quotes: repairers send a quote on a request, can withdraw it; the customer compares them (with the repairer's rating and distance) and accepts one
 - Reviews in both directions after a completed order (1–5 stars + text), hidden until both sides reviewed or 14 days passed. Average and list on the public profile; admins can remove reviews
-- Payouts (`/profil/auszahlungen`): Stripe Connect Express onboarding. With Stripe configured, only repairers with an active payout account can send quotes (see "Stripe" below)
+- Payouts (`/profil/auszahlungen`): Stripe Connect Express onboarding. Optional: anyone can send quotes without a payout account, unless `REQUIRE_PAYOUT_ACCOUNT=true` (see "Stripe" below)
 - Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
 - „Meine Anfragen“ and „Meine Angebote“ overview pages
 - Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
@@ -75,7 +75,7 @@ Migrations are not run automatically on deploy. Run step 2 again whenever a new 
 
 ## Stripe (optional, test mode)
 
-Without `STRIPE_SECRET_KEY` the app runs without Stripe: anyone can send quotes, and `/profil/auszahlungen` says payouts aren't set up. With it, repairers must finish Stripe's onboarding before quoting.
+Without `STRIPE_SECRET_KEY` the app runs without Stripe, and `/profil/auszahlungen` says payouts aren't set up. With it, repairers can set up a payout account there. Either way the payout account is **optional**: the whole app (quotes, orders, reviews) works without one, for testing. Set `REQUIRE_PAYOUT_ACCOUNT=true` to make it required before quoting, as the spec says (e.g. for a real launch).
 
 1. Create a Stripe account and stay in **test mode**. Turn on **Connect** (platform with Express accounts, country Germany).
 2. _Developers → API keys_: put the `sk_test_…` key into `STRIPE_SECRET_KEY` (`.env` and Vercel).
