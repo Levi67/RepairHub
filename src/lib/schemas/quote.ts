@@ -1,20 +1,10 @@
 import { z } from 'zod';
 import { handoverModes } from '#lib/handover.ts';
-import { parseEuroToCents } from '#lib/money.ts';
+import { euroAmount } from '#lib/schemas/form.ts';
 
 // Field rules from Technical.md 3.5.
 export const quoteSchema = z.object({
-	price: z
-		.string()
-		.trim()
-		.transform((value, ctx) => {
-			const cents = parseEuroToCents(value);
-			if (cents === null || cents <= 0) {
-				ctx.addIssue({ code: 'custom', message: 'Bitte einen gültigen Preis angeben' });
-				return z.NEVER;
-			}
-			return cents;
-		}),
+	price: euroAmount('Bitte einen gültigen Preis angeben'),
 	estimatedDays: z.coerce
 		.number('Bitte eine Dauer angeben')
 		.int('Bitte ganze Tage angeben')

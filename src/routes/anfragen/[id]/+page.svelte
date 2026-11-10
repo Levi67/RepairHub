@@ -355,6 +355,7 @@
 								name="price"
 								required
 								inputmode="decimal"
+								maxlength="12"
 								placeholder="89"
 								value={values?.price ?? ''}
 								class="w-full rounded-md border-stone-300"

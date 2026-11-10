@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { centsToInput, commissionCents, formatCents, parseEuroToCents } from './money';
+import {
+	centsToInput,
+	commissionCents,
+	formatCents,
+	MAX_AMOUNT_CENTS,
+	parseEuroToCents
+} from './money';
 
 describe('parseEuroToCents', () => {
 	it('parses German formats', () => {
@@ -38,5 +44,11 @@ describe('centsToInput', () => {
 			expect(parseEuroToCents(centsToInput(cents))).toBe(cents);
 		}
 		expect(centsToInput(null)).toBe('');
+	});
+});
+
+describe('amount limit', () => {
+	it('stays far below the Postgres integer limit', () => {
+		expect(MAX_AMOUNT_CENTS).toBeLessThan(2_147_483_647);
 	});
 });

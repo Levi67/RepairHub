@@ -135,6 +135,7 @@
 			<input
 				name="budget"
 				inputmode="decimal"
+				maxlength="12"
 				placeholder="50"
 				value={values.budget}
 				class="w-32 rounded-md border-stone-300"

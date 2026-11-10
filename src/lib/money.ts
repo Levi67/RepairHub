@@ -6,6 +6,13 @@ export function formatCents(cents: number): string {
 	return euro.format(cents / 100);
 }
 
+/**
+ * Highest amount a user can enter (budget, quote price). Amounts are stored as Postgres
+ * `integer` cents, which ends at 2 147 483 647 (≈ 21,4 Mio. €); 100.000 € is far below that
+ * and far above any real repair.
+ */
+export const MAX_AMOUNT_CENTS = 100_000_00;
+
 /** Parses user input like "49", "49,90" or "1.234,50" into cents. Returns null if invalid. */
 export function parseEuroToCents(input: string): number | null {
 	const normalized = input.trim().replace(/\s|€/g, '').replace(/\./g, '').replace(',', '.');

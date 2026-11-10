@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { handoverModes } from '#lib/handover.ts';
-import { parseEuroToCents } from '#lib/money.ts';
+import { optionalEuroAmount } from '#lib/schemas/form.ts';
 import { timeframes } from '#lib/timeframe.ts';
 
 export const MAX_PHOTOS = 8;
@@ -22,19 +22,7 @@ export const repairRequestSchema = z.object({
 		.max(2000, 'Höchstens 2000 Zeichen'),
 	brand: z.string().trim().max(80).optional(),
 	model: z.string().trim().max(80).optional(),
-	budget: z
-		.string()
-		.trim()
-		.optional()
-		.transform((value, ctx) => {
-			if (!value) return null;
-			const cents = parseEuroToCents(value);
-			if (cents === null || cents <= 0) {
-				ctx.addIssue({ code: 'custom', message: 'Ungültiger Betrag' });
-				return z.NEVER;
-			}
-			return cents;
-		}),
+	budget: optionalEuroAmount('Ungültiger Betrag'),
 	handoverModes: z.array(z.enum(handoverModes)).min(1, 'Mindestens eine Übergabeart wählen'),
 	plz: z
 		.string()
