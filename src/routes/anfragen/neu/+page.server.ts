@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { fieldErrors } from '#lib/schemas/form.ts';
 import { readRequestForm, repairRequestSchema } from '#lib/schemas/request.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { lookupPlz, UNKNOWN_PLZ } from '#lib/server/geo.ts';
 import { getOwnProfile } from '#lib/server/profiles.ts';
 import { createRequest, listCategoryTree } from '#lib/server/requests.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
@@ -30,6 +31,9 @@ export const actions: Actions = {
 		const parsed = repairRequestSchema.safeParse(raw);
 		if (!parsed.success) {
 			return fail(400, { values: raw, errors: fieldErrors(parsed.error) });
+		}
+		if (!(await lookupPlz(parsed.data.plz))) {
+			return fail(400, { values: raw, errors: { plz: UNKNOWN_PLZ } });
 		}
 
 		let created: { id: string };

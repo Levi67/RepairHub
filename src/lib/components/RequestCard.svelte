@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatCents } from '#lib/money.ts';
 	import { handoverLabels, type HandoverMode } from '#lib/handover.ts';
+	import { formatDistance } from '#lib/geo.ts';
 
 	let {
 		request
@@ -15,6 +16,7 @@
 			handoverModes: HandoverMode[];
 			createdAt: Date;
 			coverUrl?: string | null;
+			distanceKm?: number | null;
 		};
 	} = $props();
 </script>
@@ -37,7 +39,13 @@
 		</div>
 		<h3 class="font-semibold">{request.title}</h3>
 		<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600">
-			<span>{request.plz} {request.city}</span>
+			<span>
+				{request.plz}
+				{request.city}
+				{#if request.distanceKm != null}
+					<span class="text-stone-400">· {formatDistance(request.distanceKm)}</span>
+				{/if}
+			</span>
 			{#if request.budgetCents}
 				<span>Budget: bis ca. {formatCents(request.budgetCents)}</span>
 			{/if}

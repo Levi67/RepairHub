@@ -57,6 +57,25 @@ const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({
 
 // Profile pictures are small (256 px WebP, max 200 KB), so they live in Postgres until file
 // storage exists. `user.image` points to /api/avatar/<userId>.
+// PostGIS point in WGS 84. Only written and read through SQL (see geo.ts), never as a JS value.
+const geography = customType<{ data: string; driverData: string }>({
+	dataType: () => 'geography(Point, 4326)'
+});
+
+// German postcodes with the centre of their area (GeoNames, CC BY 4.0), filled by migration 0007.
+// Every location in the app is a PLZ centre, never an exact address (Technical.md 3.11).
+export const plz = pgTable(
+	'plz',
+	{
+		plz: text('plz').primaryKey(),
+		// The most common place name, used to fill in "Ort". `places` lists all places in the area.
+		city: text('city').notNull(),
+		places: text('places').array().notNull(),
+		location: geography('location').notNull()
+	},
+	(table) => [index('plz_location_idx').using('gist', table.location)]
+);
+
 export const userAvatar = pgTable('user_avatar', {
 	userId: text('user_id')
 		.primaryKey()
@@ -85,6 +104,8 @@ export const repairRequest = pgTable(
 		handoverModes: handoverMode('handover_modes').array().notNull(),
 		plz: text('plz').notNull(),
 		city: text('city').notNull(),
+		// Centre of the PLZ, copied from the `plz` table on save. Null only for old unknown PLZs.
+		location: geography('location'),
 		status: requestStatus('status').notNull().default('open'),
 		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -95,7 +116,8 @@ export const repairRequest = pgTable(
 	},
 	(table) => [
 		index('repair_request_status_created_idx').on(table.status, table.createdAt),
-		index('repair_request_customer_idx').on(table.customerId)
+		index('repair_request_customer_idx').on(table.customerId),
+		index('repair_request_location_idx').using('gist', table.location)
 	]
 );
 

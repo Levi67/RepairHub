@@ -8,6 +8,7 @@ import {
 	requestAdditionSchema
 } from '#lib/schemas/request.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { lookupPlz, UNKNOWN_PLZ } from '#lib/server/geo.ts';
 import {
 	addToRequest,
 	getRequestForEdit,
@@ -58,6 +59,9 @@ export const actions: Actions = {
 		const raw = readRequestForm(await event.request.formData());
 		const parsed = repairRequestSchema.safeParse(raw);
 		if (!parsed.success) return fail(400, { values: raw, errors: fieldErrors(parsed.error) });
+		if (!(await lookupPlz(parsed.data.plz))) {
+			return fail(400, { values: raw, errors: { plz: UNKNOWN_PLZ } });
+		}
 
 		try {
 			await updateRequest(event.params.id, user.id, parsed.data);

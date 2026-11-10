@@ -4,6 +4,7 @@
 	import { MAX_PHOTOS, type RequestFormValues } from '#lib/schemas/request.ts';
 	import type { CategoryGroup } from '#lib/server/requests.ts';
 	import PhotoPicker, { type Photo } from './PhotoPicker.svelte';
+	import PlzCityFields from './PlzCityFields.svelte';
 
 	let {
 		categories,
@@ -116,29 +117,14 @@
 </fieldset>
 
 <div class="grid gap-4 sm:grid-cols-3">
-	<label class="block">
-		<span class="text-sm font-medium">PLZ *</span>
-		<input
-			name="plz"
-			required
-			inputmode="numeric"
-			pattern={'[0-9]{5}'}
-			maxlength="5"
-			value={values.plz}
-			class="mt-1 w-full rounded-md border-stone-300"
-		/>
-		{@render error('plz')}
-	</label>
-	<label class="block sm:col-span-2">
-		<span class="text-sm font-medium">Ort *</span>
-		<input
-			name="city"
-			required
-			value={values.city}
-			class="mt-1 w-full rounded-md border-stone-300"
-		/>
-		{@render error('city')}
-	</label>
+	<PlzCityFields
+		plz={values.plz}
+		city={values.city}
+		required
+		plzError={errors.plz}
+		cityError={errors.city}
+		cityClass="sm:col-span-2"
+	/>
 </div>
 
 <div class="grid gap-4 sm:grid-cols-2">

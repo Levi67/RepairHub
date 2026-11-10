@@ -16,6 +16,7 @@ import {
 import { db } from '#lib/server/db/index.ts';
 import { category, quote, repairRequest, requestImage, user } from '#lib/server/db/schema.ts';
 import { DomainError, isUniqueViolation } from '#lib/server/errors.ts';
+import { latOf, lngOf, lookupPlz, plzLocation, pointOf, UNKNOWN_PLZ } from '#lib/server/geo.ts';
 import { deletePhotos, isOwnPhotoPath, photoUrl, verifyPhoto } from '#lib/server/storage.ts';
 import { canRenewRequest } from '#lib/status.ts';
 import {
@@ -69,10 +70,20 @@ const withCoverUrl = <T extends { coverPath: string | null }>({ coverPath, ...ro
 	coverUrl: coverPath ? photoUrl(coverPath) : null
 });
 
+export type DistanceFilter = {
+	/** Where to measure from: the centre of a PLZ (see `lookupPlz`). */
+	origin: { lat: number; lng: number };
+	/** Only requests within this many km; null = everywhere, but still show the distance. */
+	radiusKm: number | null;
+	/** Requests that can be shipped are shown regardless of distance (Technical.md 3.11). */
+	includeShipping: boolean;
+};
+
 export async function listOpenRequests(filters: {
 	categorySlug?: string;
 	q?: string;
 	customerId?: string;
+	distance?: DistanceFilter;
 	limit?: number;
 }) {
 	const conditions: SQL[] = [
@@ -103,8 +114,27 @@ export async function listOpenRequests(filters: {
 		);
 	}
 
+	const origin = filters.distance ? pointOf(filters.distance.origin) : null;
+	if (filters.distance?.radiusKm && origin) {
+		const within = sql`ST_DWithin(${repairRequest.location}, ${origin}, ${filters.distance.radiusKm * 1000})`;
+		conditions.push(
+			filters.distance.includeShipping
+				? or(within, sql`'shipping' = any(${repairRequest.handoverModes})`)!
+				: within
+		);
+	}
+
 	const rows = await db
-		.select(listColumns)
+		.select({
+			...listColumns,
+			lat: latOf(repairRequest.location),
+			lng: lngOf(repairRequest.location),
+			distanceKm: origin
+				? sql<number | null>`ST_Distance(${repairRequest.location}, ${origin}) / 1000`.mapWith(
+						Number
+					)
+				: sql<null>`null`
+		})
 		.from(repairRequest)
 		.innerJoin(category, eq(repairRequest.categoryId, category.id))
 		.innerJoin(user, eq(repairRequest.customerId, user.id))
@@ -179,6 +209,11 @@ function rethrowPhotoReuse(error: unknown): never {
 	throw error;
 }
 
+/** Every request needs a known PLZ, so it has a location for distance search. */
+async function requireKnownPlz(plz: string) {
+	if (!(await lookupPlz(plz))) throw new DomainError(UNKNOWN_PLZ);
+}
+
 const requestFields = (input: RequestData) => ({
 	categoryId: input.categoryId,
 	title: input.title,
@@ -189,12 +224,14 @@ const requestFields = (input: RequestData) => ({
 	timeframe: input.timeframe,
 	handoverModes: input.handoverModes,
 	plz: input.plz,
-	city: input.city
+	city: input.city,
+	location: plzLocation(input.plz)
 });
 
 const newExpiry = () => new Date(Date.now() + REQUEST_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
 
 export async function createRequest(customerId: string, input: RequestData) {
+	await requireKnownPlz(input.plz);
 	await verifyNewPhotos(customerId, input.photos);
 	try {
 		return await db.transaction(async (tx) => {
@@ -237,6 +274,7 @@ export async function updateRequest(requestId: string, customerId: string, input
 			'Es gibt schon Angebote. Du kannst nur noch einen Nachtrag und Fotos hinzufügen.'
 		);
 	}
+	await requireKnownPlz(input.plz);
 	const known = new Set(request.photos.map((p) => p.path));
 	await verifyNewPhotos(customerId, input.photos, known);
 

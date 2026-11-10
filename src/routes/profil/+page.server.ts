@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { fieldErrors } from '#lib/schemas/form.ts';
 import { profileSchema } from '#lib/schemas/profile.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { lookupPlz, UNKNOWN_PLZ } from '#lib/server/geo.ts';
 import { getOwnProfile, removeAvatar, setAvatar, updateProfile } from '#lib/server/profiles.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 
@@ -28,6 +29,10 @@ export const actions: Actions = {
 		};
 		const parsed = profileSchema.safeParse(raw);
 		if (!parsed.success) return fail(400, { values: raw, errors: fieldErrors(parsed.error) });
+		// The profile PLZ is the default starting point for distance search.
+		if (parsed.data.plz && !(await lookupPlz(parsed.data.plz))) {
+			return fail(400, { values: raw, errors: { plz: UNKNOWN_PLZ } });
+		}
 
 		await updateProfile(user.id, parsed.data);
 		return { saved: 'profile' as const };

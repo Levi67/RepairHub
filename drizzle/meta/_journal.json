@@ -50,6 +50,13 @@
       "when": 1794049602717,
       "tag": "0006_request_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794346056078,
+      "tag": "0007_plz_geo",
+      "breakpoints": true
     }
   ]
 }

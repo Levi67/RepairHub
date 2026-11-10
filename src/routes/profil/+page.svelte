@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import PlzCityFields from '#lib/components/PlzCityFields.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -150,30 +151,12 @@
 		</label>
 
 		<div class="grid gap-4 sm:grid-cols-[8rem_1fr]">
-			<label class="block">
-				<span class="text-sm font-medium">PLZ</span>
-				<input
-					name="plz"
-					inputmode="numeric"
-					pattern={'[0-9]{5}'}
-					maxlength="5"
-					autocomplete="postal-code"
-					value={values.plz ?? ''}
-					class="mt-1 w-full rounded-md border-stone-300"
-				/>
-				{@render error('plz')}
-			</label>
-			<label class="block">
-				<span class="text-sm font-medium">Ort</span>
-				<input
-					name="city"
-					maxlength="80"
-					autocomplete="address-level2"
-					value={values.city ?? ''}
-					class="mt-1 w-full rounded-md border-stone-300"
-				/>
-				{@render error('city')}
-			</label>
+			<PlzCityFields
+				plz={values.plz ?? ''}
+				city={values.city ?? ''}
+				plzError={errors.plz}
+				cityError={errors.city}
+			/>
 		</div>
 		<p class="-mt-3 text-xs text-stone-500">
 			Öffentlich, damit andere ungefähr sehen, wo du bist. Deine genaue Adresse fragen wir erst bei
