@@ -77,7 +77,9 @@ Migrations are not run automatically on deploy. Run step 2 again whenever a new 
 
 Without `STRIPE_SECRET_KEY` the app runs without Stripe, and `/profil/auszahlungen` says payouts aren't set up. With it, repairers can set up a payout account there. Either way the payout account is **optional**: the whole app (quotes, orders, reviews) works without one, for testing. Set `REQUIRE_PAYOUT_ACCOUNT=true` to make it required before quoting, as the spec says (e.g. for a real launch).
 
-1. Create a Stripe account and stay in **test mode**. Turn on **Connect** (platform with Express accounts, country Germany).
+1. Use a Stripe **sandbox**. Turn on **Connect** (marketplace), fill in the platform profile and **accept loss liability** (Settings → Connect → Platform profile), and set the branding.
 2. _Developers → API keys_: put the `sk_test_…` key into `STRIPE_SECRET_KEY` (`.env` and Vercel).
-3. _Developers → Webhooks → Add endpoint_: `https://<your app>/api/stripe/webhook`, listening to **events on connected accounts**, event `account.updated`. Put its signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel.
-4. Locally the webhook is optional: the status is refreshed when the user comes back from Stripe. To test it anyway: `stripe listen --forward-connect-to localhost:5173/api/stripe/webhook` and put the printed `whsec_…` into `.env`.
+3. _Developers → Webhooks → Add destination_: events from **Your account**, payload style **Thin**, events `v2.core.account[configuration.recipient].capability_status_updated` and `v2.core.account[requirements].updated`, endpoint `https://<your app>/api/stripe/webhook`. Put its signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel.
+4. Locally the webhook is optional: the status is refreshed whenever `/profil/auszahlungen` is opened.
+
+Connected accounts use **Accounts v2** (`recipient` configuration, Express Dashboard, platform-owned fees and losses), as Stripe recommends for marketplaces with separate charges and transfers.

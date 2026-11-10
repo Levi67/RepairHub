@@ -42,10 +42,15 @@ export async function callStripe<T>(fn: (client: Stripe) => Promise<T>): Promise
 	}
 }
 
-/** Checks the signature of a webhook call and returns the event. Throws if it's not from Stripe. */
+/**
+ * Checks the signature of a webhook call and returns the event notification. Throws if it's not
+ * from Stripe. The endpoint uses Stripe's "thin" payload style (event destinations), which carries
+ * only the event type and the ID of the affected object; both v2 events (Accounts v2) and v1 events
+ * (later: Checkout) arrive this way, so one endpoint with one secret covers everything.
+ */
 export async function verifyWebhook(body: string, signature: string) {
 	if (!STRIPE_WEBHOOK_SECRET) throw new Error('STRIPE_WEBHOOK_SECRET is not set');
-	return stripe().webhooks.constructEventAsync(body, signature, STRIPE_WEBHOOK_SECRET);
+	return stripe().parseEventNotificationAsync(body, signature, STRIPE_WEBHOOK_SECRET);
 }
 
 export type { Stripe };

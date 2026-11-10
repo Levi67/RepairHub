@@ -14,7 +14,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Stripe sends people here when their onboarding link expired: give them a fresh one.
 	if (event.url.searchParams.has('neu')) {
-		return redirect(303, await startOnboarding(user.id, user.email, event.url.origin));
+		return redirect(303, await startOnboarding(user, event.url.origin));
 	}
 	return { stripeEnabled, payoutAccountRequired, ...(await getPayoutAccount(user.id)) };
 };
@@ -25,7 +25,7 @@ export const actions: Actions = {
 		if (!user) return redirect(302, loginUrl(event.url));
 		let url: string;
 		try {
-			url = await startOnboarding(user.id, user.email, event.url.origin);
+			url = await startOnboarding(user, event.url.origin);
 		} catch (e) {
 			return failOnDomainError(e);
 		}

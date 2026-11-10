@@ -9,19 +9,34 @@ import {
 	type Stripe
 } from '#lib/server/stripe.ts';
 
-// "Auszahlungen einrichten": each repairer gets a Stripe Connect Express account and goes through
-// Stripe's hosted onboarding (Technical.md 3.8, 4.3). The spec makes it required for quoting;
-// here that's only switched on with REQUIRE_PAYOUT_ACCOUNT=true, so the app can be tested without it.
+// "Auszahlungen einrichten": each repairer gets a Stripe Connect account and goes through Stripe's
+// hosted onboarding (Technical.md 3.8, 4.3). The spec makes it required for quoting; here that's
+// only switched on with REQUIRE_PAYOUT_ACCOUNT=true, so the app can be tested without it.
+//
+// Accounts v2, as Stripe's integration plan recommends for a marketplace with separate charges and
+// transfers: only the `recipient` configuration (receives transfers, no own payments), the Express
+// Dashboard, and the platform pays Stripe's fees and carries losses.
 
 export type PayoutStatus = (typeof repairerProfile.stripeStatus.enumValues)[number];
 
+type StripeAccount = Stripe.V2.Core.Account;
 type Db = Pick<typeof db, 'update'>;
 
-/** Our status from Stripe's account: active once Stripe allows transfers and payouts to it. */
-export function statusFromAccount(account: Stripe.Account): PayoutStatus {
-	if (account.payouts_enabled && account.capabilities?.transfers === 'active') return 'active';
-	// Onboarding was finished, but Stripe needs more or has blocked the account.
-	if (account.details_submitted && account.requirements?.disabled_reason) return 'restricted';
+/** Without `include`, Accounts v2 returns these parts as null. */
+const ACCOUNT_INCLUDE: Stripe.V2.Core.AccountRetrieveParams.Include[] = [
+	'configuration.recipient',
+	'requirements'
+];
+
+/** Our status from the account's ability to receive transfers (`stripe_balance.stripe_transfers`). */
+export function statusFromAccount(account: StripeAccount): PayoutStatus {
+	const status =
+		account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status;
+	if (status === 'active') return 'active';
+	// Stripe needs more information, or has turned the capability down.
+	if (status === 'restricted' || status === 'rejected' || status === 'unsupported') {
+		return 'restricted';
+	}
 	return 'pending';
 }
 
@@ -38,12 +53,19 @@ export async function canSendQuotes(userId: string): Promise<boolean> {
 	return (await getPayoutStatus(userId)) === 'active';
 }
 
-/** Stores the latest status of a connected account (from the webhook or after returning). */
-export async function syncAccount(account: Stripe.Account, tx: Db = db) {
+async function retrieveAccount(accountId: string) {
+	return callStripe((s) => s.v2.core.accounts.retrieve(accountId, { include: ACCOUNT_INCLUDE }));
+}
+
+/** Fetches a connected account from Stripe and stores its current status (webhook + page loads). */
+export async function syncAccount(accountId: string, tx: Db = db) {
+	const account = await retrieveAccount(accountId);
+	const status = statusFromAccount(account);
 	await tx
 		.update(repairerProfile)
-		.set({ stripeStatus: statusFromAccount(account) })
-		.where(eq(repairerProfile.stripeAccountId, account.id));
+		.set({ stripeStatus: status })
+		.where(eq(repairerProfile.stripeAccountId, accountId));
+	return status;
 }
 
 /**
@@ -57,9 +79,7 @@ export async function getPayoutAccount(userId: string) {
 	if (!row?.stripeAccountId) return { status: 'none' as PayoutStatus, hasAccount: false };
 	if (stripeEnabled && row.stripeStatus !== 'active') {
 		try {
-			const account = await callStripe((s) => s.accounts.retrieve(row.stripeAccountId!));
-			await syncAccount(account);
-			return { status: statusFromAccount(account), hasAccount: true };
+			return { status: await syncAccount(row.stripeAccountId), hasAccount: true };
 		} catch (e) {
 			// Stripe not reachable: show what we know instead of failing the page.
 			if (!(e instanceof DomainError)) throw e;
@@ -72,45 +92,63 @@ export async function getPayoutAccount(userId: string) {
  * Creates the connected account on first use and returns a link to Stripe's onboarding form.
  * `origin` is where Stripe sends the user back to.
  */
-export async function startOnboarding(userId: string, email: string, origin: string) {
+export async function startOnboarding(
+	user: { id: string; email: string; name: string },
+	origin: string
+) {
 	const accountId = await db.transaction(async (tx) => {
-		await tx.insert(repairerProfile).values({ userId }).onConflictDoNothing();
+		await tx.insert(repairerProfile).values({ userId: user.id }).onConflictDoNothing();
 		// Locked, so a double click can't create two Stripe accounts.
 		const [row] = await tx
 			.select()
 			.from(repairerProfile)
-			.where(eq(repairerProfile.userId, userId))
+			.where(eq(repairerProfile.userId, user.id))
 			.for('update');
 		if (row.stripeAccountId) return row.stripeAccountId;
 
 		const account = await callStripe((s) =>
-			s.accounts.create(
+			s.v2.core.accounts.create(
 				{
-					type: 'express',
-					country: 'DE',
-					email,
-					// Separate charges and transfers: the platform takes the payment and later transfers
-					// the payout, so the account only needs to receive transfers.
-					capabilities: { transfers: { requested: true } },
-					metadata: { userId }
+					contact_email: user.email,
+					display_name: user.name,
+					identity: { country: 'DE' },
+					dashboard: 'express',
+					// Separate charges and transfers: the platform is the merchant of record, pays Stripe's
+					// fees and carries losses. Needs "loss liability" accepted in the Connect settings.
+					defaults: {
+						responsibilities: { fees_collector: 'application', losses_collector: 'application' },
+						locales: ['de-DE']
+					},
+					// Only receives transfers (the payout minus commission), never takes payments itself.
+					configuration: {
+						recipient: {
+							capabilities: { stripe_balance: { stripe_transfers: { requested: true } } }
+						}
+					},
+					include: ACCOUNT_INCLUDE,
+					metadata: { userId: user.id }
 				},
-				{ idempotencyKey: `connect-account-${userId}` }
+				{ idempotencyKey: `connect-account-v2-${user.id}` }
 			)
 		);
 		await tx
 			.update(repairerProfile)
 			.set({ stripeAccountId: account.id, stripeStatus: statusFromAccount(account) })
-			.where(eq(repairerProfile.userId, userId));
+			.where(eq(repairerProfile.userId, user.id));
 		return account.id;
 	});
 
 	const link = await callStripe((s) =>
-		s.accountLinks.create({
+		s.v2.core.accountLinks.create({
 			account: accountId,
-			type: 'account_onboarding',
-			// Links expire after a few minutes; `refresh_url` is where Stripe sends people to get a new one.
-			refresh_url: `${origin}/profil/auszahlungen?neu=1`,
-			return_url: `${origin}/profil/auszahlungen?zurueck=1`
+			use_case: {
+				type: 'account_onboarding',
+				account_onboarding: {
+					// Links expire after a few minutes; Stripe sends people here to get a new one.
+					refresh_url: `${origin}/profil/auszahlungen?neu=1`,
+					return_url: `${origin}/profil/auszahlungen?zurueck=1`
+				}
+			}
 		})
 	);
 	return link.url;
