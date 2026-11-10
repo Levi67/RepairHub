@@ -1,9 +1,11 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
+	import { enhance } from '$app/forms';
 	import RequestCard from '#lib/components/RequestCard.svelte';
+	import Stars from '#lib/components/Stars.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	const profile = $derived(data.profile);
 	const memberSince = $derived(
@@ -34,15 +36,33 @@
 				{/if}
 				<span>Mitglied seit {memberSince}</span>
 			</div>
-			<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600">
-				<span>
+			<div class="mt-2 grid gap-1 text-sm text-stone-600 sm:grid-cols-2">
+				<div>
 					<strong class="text-stone-900">{profile.completedAsRepairer}</strong>
 					{profile.completedAsRepairer === 1 ? 'Reparatur' : 'Reparaturen'} durchgeführt
-				</span>
-				<span>
+					{#if data.ratings.asRepairer.count}
+						<div>
+							<Stars
+								rating={data.ratings.asRepairer.average}
+								count={data.ratings.asRepairer.count}
+							/>
+							als Reparateur
+						</div>
+					{/if}
+				</div>
+				<div>
 					<strong class="text-stone-900">{profile.completedAsCustomer}</strong>
 					{profile.completedAsCustomer === 1 ? 'Auftrag' : 'Aufträge'} als Auftraggeber
-				</span>
+					{#if data.ratings.asCustomer.count}
+						<div>
+							<Stars
+								rating={data.ratings.asCustomer.average}
+								count={data.ratings.asCustomer.count}
+							/>
+							als Auftraggeber
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
 		{#if data.isOwn}
@@ -58,6 +78,58 @@
 			<p class="whitespace-pre-line text-stone-700">{profile.bio}</p>
 		{:else}
 			<p class="text-stone-500">Noch keine Beschreibung.</p>
+		{/if}
+	</section>
+
+	<section>
+		<h2 class="mb-3 text-lg font-semibold">Bewertungen ({data.reviews.length})</h2>
+		{#if form?.message}
+			<p class="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{form.message}</p>
+		{/if}
+		{#if data.reviews.length}
+			<ul class="space-y-3">
+				{#each data.reviews as r (r.id)}
+					<li class="rounded-lg border border-stone-200 bg-white p-4">
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<div class="flex items-center gap-2">
+								<Avatar name={r.authorName} image={r.authorImage} size="sm" />
+								<div>
+									<a href="/nutzer/{r.authorId}" class="text-sm font-medium hover:underline">
+										{r.authorName}
+									</a>
+									<div class="text-xs text-stone-500">
+										{r.direction === 'customer_to_repairer'
+											? 'als Auftraggeber über die Reparatur'
+											: 'als Reparateur über den Auftrag'}
+										„{r.requestTitle}“ · {r.createdAt.toLocaleDateString('de-DE')}
+									</div>
+								</div>
+							</div>
+							<Stars rating={r.rating} />
+						</div>
+						{#if r.text}
+							<p class="mt-2 text-sm whitespace-pre-line text-stone-700">{r.text}</p>
+						{/if}
+						{#if data.isAdmin}
+							<form
+								method="post"
+								action="?/removeReview"
+								use:enhance={({ cancel }) => {
+									if (!confirm('Bewertung entfernen?')) cancel();
+								}}
+								class="mt-2"
+							>
+								<input type="hidden" name="reviewId" value={r.id} />
+								<button class="text-xs text-stone-500 hover:text-red-600">
+									Bewertung entfernen (Admin)
+								</button>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			<p class="text-stone-500">Noch keine Bewertungen.</p>
 		{/if}
 	</section>
 

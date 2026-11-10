@@ -43,6 +43,19 @@ export const orderStatus = pgEnum('order_status', [
 	'refunded'
 ]);
 
+// Stripe Connect account state of a repairer (Technical.md 3.1, 4.3).
+export const stripeAccountStatus = pgEnum('stripe_account_status', [
+	'none',
+	'pending',
+	'active',
+	'restricted'
+]);
+
+export const reviewDirection = pgEnum('review_direction', [
+	'customer_to_repairer',
+	'repairer_to_customer'
+]);
+
 export const category = pgTable('category', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	parentId: uuid('parent_id').references((): AnyPgColumn => category.id),
@@ -276,6 +289,54 @@ export const message = pgTable(
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 	},
 	(table) => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
+);
+
+// Repairer side of an account. For now only the Stripe Connect part (#32); the profile fields
+// from Technical.md 6.1 (kind, description, categories, radius, …) come with #30.
+export const repairerProfile = pgTable('repairer_profile', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	stripeAccountId: text('stripe_account_id').unique(),
+	stripeStatus: stripeAccountStatus('stripe_status').notNull().default('none'),
+	...timestamps
+});
+
+// Every Stripe webhook event we handled, so a repeated delivery is skipped (Technical.md 8.2).
+export const stripeEvent = pgTable('stripe_event', {
+	id: text('id').primaryKey(),
+	type: text('type').notNull(),
+	processedAt: timestamp('processed_at', { withTimezone: true }).defaultNow().notNull()
+});
+
+// Reviews in both directions after a completed order (Technical.md 3.10). Hidden until both sides
+// reviewed (`published_at` set on both) or the 14-day window after completion is over.
+export const review = pgTable(
+	'review',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		orderId: uuid('order_id')
+			.notNull()
+			.references(() => order.id, { onDelete: 'cascade' }),
+		authorId: text('author_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		subjectId: text('subject_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		direction: reviewDirection('direction').notNull(),
+		rating: integer('rating').notNull(),
+		text: text('text'),
+		publishedAt: timestamp('published_at', { withTimezone: true }),
+		// Removed by an admin; stays in the table for the record.
+		removedAt: timestamp('removed_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [
+		uniqueIndex('review_order_direction_idx').on(table.orderId, table.direction),
+		index('review_subject_idx').on(table.subjectId, table.direction),
+		check('review_rating_range', sql`${table.rating} between 1 and 5`)
+	]
 );
 
 export const categoryRelations = relations(category, ({ one, many }) => ({

@@ -57,6 +57,13 @@
       "when": 1794346056078,
       "tag": "0007_plz_geo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794347521850,
+      "tag": "0008_reviews_payouts",
+      "breakpoints": true
     }
   ]
 }

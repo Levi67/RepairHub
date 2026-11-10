@@ -11,6 +11,7 @@ import {
 import { acceptQuote, getActiveOrderIdForRequest } from '#lib/server/orders.ts';
 import { getConversationIdFor, startConversation } from '#lib/server/conversations.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { canSendQuotes } from '#lib/server/payouts.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 import { fieldErrors } from '#lib/schemas/form.ts';
 import { quoteSchema } from '#lib/schemas/quote.ts';
@@ -29,16 +30,34 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			listQuotesForRequest(request.id),
 			getActiveOrderIdForRequest(request.id)
 		]);
-		return { request, isOwner, quotes, orderId, ownQuote: null, conversationId: null };
+		return {
+			request,
+			isOwner,
+			quotes,
+			orderId,
+			ownQuote: null,
+			conversationId: null,
+			needsPayoutSetup: false
+		};
 	}
 
-	const [ownQuote, conversationId] = userId
+	const [ownQuote, conversationId, mayQuote] = userId
 		? await Promise.all([
 				getLatestOwnQuote(request.id, userId),
-				getConversationIdFor(request.id, userId)
+				getConversationIdFor(request.id, userId),
+				canSendQuotes(userId)
 			])
-		: [null, null];
-	return { request, isOwner, quotes: [], orderId: null, ownQuote, conversationId };
+		: [null, null, true];
+	return {
+		request,
+		isOwner,
+		quotes: [],
+		orderId: null,
+		ownQuote,
+		conversationId,
+		// Repairers need a payout account before quoting (Technical.md 3.5).
+		needsPayoutSetup: !mayQuote
+	};
 };
 
 export const actions: Actions = {

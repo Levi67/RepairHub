@@ -10,6 +10,9 @@ import {
 	setOutboundTracking
 } from '#lib/server/orders.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { createReview, getOrderReviews } from '#lib/server/reviews.ts';
+import { fieldErrors } from '#lib/schemas/form.ts';
+import { reviewSchema } from '#lib/schemas/review.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 
 export const load: PageServerLoad = async (event) => {
@@ -20,7 +23,12 @@ export const load: PageServerLoad = async (event) => {
 	const order = await getOrderForUser(event.params.id, user.id);
 	if (!order) error(404, 'Auftrag nicht gefunden');
 
-	return { ...order, role: order.order.customerId === user.id ? 'customer' : 'repairer' } as const;
+	const reviews = await getOrderReviews(order.order.id, user.id, order.order.completedAt);
+	return {
+		...order,
+		reviews,
+		role: order.order.customerId === user.id ? 'customer' : 'repairer'
+	} as const;
 };
 
 const textField = (formData: FormData, name: string, max: number) =>
@@ -50,6 +58,25 @@ export const actions: Actions = {
 	confirm: (event) => run(event, (id, userId) => confirmCompleted(id, userId)),
 	cancel: (event) =>
 		run(event, (id, userId, f) => cancelOrder(id, userId, textField(f, 'reason', 500))),
+	review: async (event) => {
+		const user = event.locals.user;
+		if (!user) return redirect(302, loginUrl(event.url));
+		const formData = await event.request.formData();
+		const raw = {
+			rating: formData.get('rating')?.toString() ?? '',
+			text: formData.get('text')?.toString() ?? ''
+		};
+		const parsed = reviewSchema.safeParse(raw);
+		if (!parsed.success) {
+			return fail(400, { reviewValues: raw, reviewErrors: fieldErrors(parsed.error) });
+		}
+		try {
+			await createReview(event.params.id, user.id, parsed.data);
+		} catch (e) {
+			return failOnDomainError(e);
+		}
+		return { reviewed: true };
+	},
 	tracking: (event) =>
 		run(event, async (id, userId, f) => {
 			const tracking = textField(f, 'outboundTracking', 100);

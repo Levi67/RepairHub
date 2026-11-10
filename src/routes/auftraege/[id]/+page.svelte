@@ -4,6 +4,7 @@
 	import { handoverLabels } from '#lib/handover.ts';
 	import { orderStatusLabels } from '#lib/status.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import Stars from '#lib/components/Stars.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -14,6 +15,13 @@
 	const confirmCancel: SubmitFunction = ({ cancel }) => {
 		if (!confirm('Auftrag wirklich stornieren?')) cancel();
 	};
+
+	const reviews = $derived(data.reviews);
+	const otherName = $derived(isCustomer ? data.repairerName : data.customerName);
+	// Star picker; the radios stay real inputs, so it also works with the keyboard and without JS.
+	let rating = $state(0);
+	let hovered = $state(0);
+	const ratingWords = ['', 'Schlecht', 'Mäßig', 'Okay', 'Gut', 'Sehr gut'];
 
 	const button = 'rounded-md px-4 py-2 text-sm font-medium';
 	const primary = `${button} bg-emerald-600 text-white hover:bg-emerald-700`;
@@ -205,6 +213,102 @@
 				</details>
 			{/if}
 		</section>
+
+		{#if order.status === 'completed'}
+			<section class="rounded-lg border border-stone-200 bg-white p-6">
+				<h2 class="mb-3 text-lg font-semibold">Bewertung</h2>
+
+				{#if reviews.own}
+					<div class="text-sm">
+						<p class="text-stone-500">Deine Bewertung für {otherName}</p>
+						<div class="mt-1"><Stars rating={reviews.own.rating} /></div>
+						{#if reviews.own.text}
+							<p class="mt-1 whitespace-pre-line">{reviews.own.text}</p>
+						{/if}
+						{#if !reviews.own.publishedAt && reviews.windowEnd}
+							<p class="mt-2 text-xs text-stone-500">
+								Noch nicht öffentlich. Sie erscheint, sobald {otherName} dich auch bewertet hat, spätestens
+								am {reviews.windowEnd.toLocaleDateString('de-DE')}.
+							</p>
+						{/if}
+					</div>
+				{:else if reviews.canReview}
+					<form method="post" action="?/review" use:enhance class="space-y-3">
+						<fieldset>
+							<legend class="text-sm font-medium">Wie war es mit {otherName}?</legend>
+							<div class="mt-1 flex items-center gap-1" role="presentation">
+								{#each [1, 2, 3, 4, 5] as n (n)}
+									<label
+										class="cursor-pointer text-3xl leading-none {n <= (hovered || rating)
+											? 'text-amber-500'
+											: 'text-stone-300'}"
+										onmouseenter={() => (hovered = n)}
+										onmouseleave={() => (hovered = 0)}
+									>
+										<input
+											type="radio"
+											name="rating"
+											value={n}
+											bind:group={rating}
+											class="peer sr-only"
+										/>
+										<span
+											class="rounded peer-focus-visible:outline-2 peer-focus-visible:outline-emerald-500"
+											aria-hidden="true">★</span
+										>
+										<span class="sr-only">{n} {n === 1 ? 'Stern' : 'Sterne'}</span>
+									</label>
+								{/each}
+								<span class="ml-2 text-sm text-stone-600">{ratingWords[hovered || rating]}</span>
+							</div>
+							{#if form && 'reviewErrors' in form && form.reviewErrors?.rating}
+								<p class="mt-1 text-sm text-red-600">{form.reviewErrors.rating}</p>
+							{/if}
+						</fieldset>
+						<label class="block">
+							<span class="text-sm font-medium">Kommentar (optional)</span>
+							<textarea
+								name="text"
+								rows="3"
+								maxlength="1000"
+								placeholder={isCustomer
+									? 'Wie war die Reparatur, die Kommunikation, die Dauer?'
+									: 'Wie lief die Zusammenarbeit?'}
+								class="mt-1 w-full rounded-md border-stone-300"
+								>{form && 'reviewValues' in form ? (form.reviewValues?.text ?? '') : ''}</textarea
+							>
+							{#if form && 'reviewErrors' in form && form.reviewErrors?.text}
+								<p class="mt-1 text-sm text-red-600">{form.reviewErrors.text}</p>
+							{/if}
+						</label>
+						<button class={primary}>Bewertung abgeben</button>
+						<p class="text-xs text-stone-500">
+							Deine Bewertung bleibt verborgen, bis {otherName} auch bewertet hat oder bis zum
+							{reviews.windowEnd?.toLocaleDateString('de-DE')}. So kann niemand auf die Bewertung
+							des anderen reagieren.
+						</p>
+					</form>
+				{:else}
+					<p class="text-sm text-stone-500">Der Zeitraum zum Bewerten ist vorbei.</p>
+				{/if}
+
+				{#if reviews.other}
+					<div class="mt-4 border-t border-stone-100 pt-4 text-sm">
+						<p class="text-stone-500">{otherName} über dich</p>
+						<div class="mt-1"><Stars rating={reviews.other.rating} /></div>
+						{#if reviews.other.text}
+							<p class="mt-1 whitespace-pre-line">{reviews.other.text}</p>
+						{/if}
+					</div>
+				{:else if reviews.otherIsHidden}
+					<p class="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-600">
+						{otherName} hat dich bewertet. Du siehst die Bewertung, sobald du selbst bewertet hast{reviews.windowEnd
+							? ` oder am ${reviews.windowEnd.toLocaleDateString('de-DE')}`
+							: ''}.
+					</p>
+				{/if}
+			</section>
+		{/if}
 	</div>
 
 	<aside class="space-y-6">

@@ -10,6 +10,7 @@ import {
 	user
 } from '#lib/server/db/schema.ts';
 import { DomainError } from '#lib/server/errors.ts';
+import { needsReviewSql } from '#lib/server/reviews.ts';
 import { commissionCents } from '#lib/money.ts';
 import type { OrderStatus } from '#lib/status.ts';
 
@@ -290,7 +291,8 @@ export async function listOrdersForUser(userId: string) {
 			customerId: order.customerId,
 			requestTitle: repairRequest.title,
 			customerName: customer.name,
-			repairerName: repairer.name
+			repairerName: repairer.name,
+			needsReview: needsReviewSql(userId)
 		})
 		.from(order)
 		.innerJoin(repairRequest, eq(order.requestId, repairRequest.id))

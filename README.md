@@ -12,8 +12,10 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Settings (`/profil/einstellungen`): change email and password, email notification preferences (saved, no emails sent yet)
 - Create a repair request (`/anfragen/neu`) with 1–8 photos and an optional timeframe. Photos are shrunk to WebP in the browser (JPEG in Safari) and uploaded straight to Supabase Storage
 - Edit a request (`/anfragen/[id]/bearbeiten`): everything until the first quote, after that only a dated note ("Nachtrag") and more photos. Withdraw a request (open quotes are rejected), renew it for 30 days once it has expired or has 3 days left
-- Browse and filter open requests by category and keyword (`/anfragen`), detail page
-- Quotes: repairers send a quote on a request, can withdraw it; the customer compares and accepts one
+- Browse and filter open requests by category and keyword (`/anfragen`), detail page. Distance search: PLZ + radius, distance on every card, list/map toggle (Leaflet + OpenStreetMap). PLZ data from GeoNames
+- Quotes: repairers send a quote on a request, can withdraw it; the customer compares them (with the repairer's rating and distance) and accepts one
+- Reviews in both directions after a completed order (1–5 stars + text), hidden until both sides reviewed or 14 days passed. Average and list on the public profile; admins can remove reviews
+- Payouts (`/profil/auszahlungen`): Stripe Connect Express onboarding. With Stripe configured, only repairers with an active payout account can send quotes (see "Stripe" below)
 - Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
 - „Meine Anfragen“ and „Meine Angebote“ overview pages
 - Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
@@ -70,3 +72,12 @@ Useful scripts:
 5. Every push to `main` deploys production, and every other branch gets a preview URL.
 
 Migrations are not run automatically on deploy. Run step 2 again whenever a new migration is added.
+
+## Stripe (optional, test mode)
+
+Without `STRIPE_SECRET_KEY` the app runs without Stripe: anyone can send quotes, and `/profil/auszahlungen` says payouts aren't set up. With it, repairers must finish Stripe's onboarding before quoting.
+
+1. Create a Stripe account and stay in **test mode**. Turn on **Connect** (platform with Express accounts, country Germany).
+2. _Developers → API keys_: put the `sk_test_…` key into `STRIPE_SECRET_KEY` (`.env` and Vercel).
+3. _Developers → Webhooks → Add endpoint_: `https://<your app>/api/stripe/webhook`, listening to **events on connected accounts**, event `account.updated`. Put its signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel.
+4. Locally the webhook is optional: the status is refreshed when the user comes back from Stripe. To test it anyway: `stripe listen --forward-connect-to localhost:5173/api/stripe/webhook` and put the printed `whsec_…` into `.env`.

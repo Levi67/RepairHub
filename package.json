@@ -57,6 +57,7 @@
 	},
 	"dependencies": {
 		"leaflet": "1.9.4",
+		"stripe": "^23.1.0",
 		"zod": "^4.6.7"
 	},
 	"packageManager": "pnpm@12.18.0"

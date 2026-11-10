@@ -20,6 +20,16 @@ export const variables = defineEnvVars({
 			'Supabase secret key (`sb_secret_…`) or legacy `service_role` key. Server only, never sent to the browser.',
 		schema: (value) => value || undefined
 	},
+	STRIPE_SECRET_KEY: {
+		description:
+			'Stripe secret key (`sk_test_…`). Without it, Stripe is off: no payout onboarding, and anyone can send quotes.',
+		schema: (value) => value || undefined
+	},
+	STRIPE_WEBHOOK_SECRET: {
+		description:
+			'Signing secret (`whsec_…`) of the Stripe webhook endpoint `/api/stripe/webhook` (Connect events).',
+		schema: (value) => value || undefined
+	},
 	STORAGE_BUCKET: {
 		description:
 			'Storage bucket for request photos. Use a separate one for local development, e.g. `request-photos-dev`.',

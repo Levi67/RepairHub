@@ -11,6 +11,8 @@
 	} from '#lib/status.ts';
 	import { timeframeLabels } from '#lib/timeframe.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import Stars from '#lib/components/Stars.svelte';
+	import { formatDistance } from '#lib/geo.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
 
@@ -229,13 +231,20 @@
 					{@const display = quoteDisplayStatus(q, now)}
 					<div class="rounded-lg border border-stone-200 bg-white p-4">
 						<div class="mb-2 flex items-center justify-between gap-2">
-							<a
-								href="/nutzer/{q.repairerId}"
-								class="flex items-center gap-2 font-medium hover:underline"
-							>
+							<div class="flex items-center gap-2">
 								<Avatar name={q.repairerName} image={q.repairerImage} size="sm" />
-								{q.repairerName}
-							</a>
+								<div>
+									<a href="/nutzer/{q.repairerId}" class="font-medium hover:underline">
+										{q.repairerName}
+									</a>
+									<div class="flex flex-wrap items-center gap-x-2 text-xs">
+										<Stars rating={q.ratingAverage} count={q.ratingCount} />
+										{#if q.distanceKm !== null}
+											<span class="text-stone-500">· {formatDistance(q.distanceKm)} entfernt</span>
+										{/if}
+									</div>
+								</div>
+							</div>
 							<div class="flex items-center gap-3">
 								{#if q.conversationId}
 									<a
@@ -333,7 +342,13 @@
 			</p>
 		{/if}
 
-		{#if canQuote}
+		{#if canQuote && data.needsPayoutSetup}
+			<p class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+				Du kannst das reparieren? Richte zuerst
+				<a href="/profil/auszahlungen" class="font-medium underline">Auszahlungen</a> ein, damit wir dir
+				das Geld überweisen können. Danach kannst du hier ein Angebot abgeben.
+			</p>
+		{:else if canQuote}
 			<h2 class="mb-3 text-xl font-semibold">Angebot abgeben</h2>
 			{#if data.ownQuote}
 				<p class="mb-3 text-sm text-stone-500">

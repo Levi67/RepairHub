@@ -71,6 +71,9 @@
 			<a href="/nutzer/{profile.id}" class="font-medium text-emerald-700 hover:underline">
 				Öffentliches Profil ansehen
 			</a>
+			<a href="/profil/auszahlungen" class="font-medium text-emerald-700 hover:underline">
+				Auszahlungen
+			</a>
 			<a href="/profil/einstellungen" class="font-medium text-emerald-700 hover:underline">
 				Einstellungen
 			</a>

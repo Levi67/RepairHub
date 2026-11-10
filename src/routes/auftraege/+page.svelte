@@ -36,6 +36,13 @@
 							</div>
 						</div>
 						<div class="flex items-center gap-3">
+							{#if o.needsReview}
+								<span
+									class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+								>
+									Jetzt bewerten
+								</span>
+							{/if}
 							<span class="font-semibold">{formatCents(o.priceCents)}</span>
 							<StatusBadge status={o.status} label={orderStatusLabels[o.status]} />
 						</div>
