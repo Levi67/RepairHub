@@ -8,7 +8,7 @@
 		none: 'Noch nicht eingerichtet',
 		pending: 'Einrichtung nicht abgeschlossen',
 		active: 'Aktiv',
-		restricted: 'Eingeschränkt: Stripe braucht noch Angaben'
+		restricted: 'Von Stripe abgelehnt'
 	} as const;
 	const returned = $derived(page.url.searchParams.has('zurueck'));
 	const button = 'rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700';

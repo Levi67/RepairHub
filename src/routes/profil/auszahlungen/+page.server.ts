@@ -5,6 +5,9 @@ import { dashboardLink, getPayoutAccount, startOnboarding } from '#lib/server/pa
 import { loginUrl } from '#lib/server/redirect.ts';
 import { payoutAccountRequired, stripeEnabled } from '#lib/server/stripe.ts';
 
+// Onboarding and Express Dashboard links point to Stripe; SvelteKit only redirects to origins we allow.
+const STRIPE = { external: ['https://connect.stripe.com'] };
+
 export const load: PageServerLoad = async (event) => {
 	const user = event.locals.user;
 	if (!user) return redirect(302, loginUrl(event.url));
@@ -14,7 +17,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Stripe sends people here when their onboarding link expired: give them a fresh one.
 	if (event.url.searchParams.has('neu')) {
-		return redirect(303, await startOnboarding(user, event.url.origin));
+		return redirect(303, await startOnboarding(user, event.url.origin), STRIPE);
 	}
 	return { stripeEnabled, payoutAccountRequired, ...(await getPayoutAccount(user.id)) };
 };
@@ -29,7 +32,7 @@ export const actions: Actions = {
 		} catch (e) {
 			return failOnDomainError(e);
 		}
-		return redirect(303, url);
+		return redirect(303, url, STRIPE);
 	},
 
 	dashboard: async (event) => {
@@ -41,6 +44,6 @@ export const actions: Actions = {
 		} catch (e) {
 			return failOnDomainError(e);
 		}
-		return redirect(303, url ?? '/profil/auszahlungen');
+		return url ? redirect(303, url, STRIPE) : redirect(303, '/profil/auszahlungen');
 	}
 };

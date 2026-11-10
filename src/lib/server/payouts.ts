@@ -33,10 +33,9 @@ export function statusFromAccount(account: StripeAccount): PayoutStatus {
 	const status =
 		account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status;
 	if (status === 'active') return 'active';
-	// Stripe needs more information, or has turned the capability down.
-	if (status === 'restricted' || status === 'rejected' || status === 'unsupported') {
-		return 'restricted';
-	}
+	// Stripe turned the account down. (`restricted` only means information is still missing, which
+	// is also the state of every new account before onboarding, so it counts as pending.)
+	if (status === 'rejected' || status === 'unsupported') return 'restricted';
 	return 'pending';
 }
 
