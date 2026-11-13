@@ -5,7 +5,11 @@
 		size = 'md'
 	}: { name: string; image?: string | null; size?: 'sm' | 'md' | 'lg' } = $props();
 
-	const sizes = { sm: 'size-7 text-xs', md: 'size-10 text-sm', lg: 'size-24 text-3xl' };
+	const sizes = {
+		sm: 'size-7 rounded-md text-xs',
+		md: 'size-10 rounded-lg text-sm',
+		lg: 'size-24 rounded-2xl text-3xl'
+	};
 
 	const initials = $derived(
 		name
@@ -18,12 +22,12 @@
 </script>
 
 {#if image}
-	<img src={image} alt="" class="{sizes[size]} shrink-0 rounded-full bg-stone-200 object-cover" />
+	<img src={image} alt="" class="{sizes[size]} shrink-0 bg-edge object-cover" />
 {:else}
 	<span
 		class="{sizes[
 			size
-		]} flex shrink-0 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-800"
+		]} flex shrink-0 items-center justify-center bg-emerald-400/10 font-semibold text-emerald-300"
 		aria-hidden="true"
 	>
 		{initials}

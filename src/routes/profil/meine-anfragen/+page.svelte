@@ -1,4 +1,6 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import Wrench from 'phosphor-svelte/lib/Wrench';
 	import { requestDisplayStatus, requestStatusLabels } from '#lib/status.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import type { PageProps } from './$types';
@@ -10,8 +12,8 @@
 <svelte:head><title>Meine Anfragen – RepairHub</title></svelte:head>
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-2">
-	<h1 class="text-2xl font-bold">Meine Anfragen</h1>
-	<a href="/anfragen/neu" class="text-sm font-medium text-emerald-700 hover:underline">
+	<h1 class="text-3xl font-semibold tracking-tight">Meine Anfragen</h1>
+	<a href="/anfragen/neu" class="text-sm font-medium text-emerald-400 hover:underline">
 		+ Neue Anfrage
 	</a>
 </div>
@@ -22,18 +24,20 @@
 			{@const status = requestDisplayStatus(r, now)}
 			<a
 				href="/anfragen/{r.id}"
-				class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stone-200 bg-white p-4 hover:border-emerald-400"
+				class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface p-4 hover:bg-raised"
 			>
 				<div>
 					<div class="font-medium">{r.title}</div>
-					<div class="text-sm text-stone-600">
+					<div class="text-sm text-neutral-300">
 						erstellt am {r.createdAt.toLocaleDateString('de-DE')}
 					</div>
 				</div>
 				<div class="flex items-center gap-3">
 					{#if status === 'open'}
 						<span
-							class="text-sm font-medium {r.pendingQuotes ? 'text-emerald-700' : 'text-stone-500'}"
+							class="text-sm font-medium {r.pendingQuotes
+								? 'text-emerald-400'
+								: 'text-neutral-400'}"
 						>
 							{r.pendingQuotes}
 							{r.pendingQuotes === 1 ? 'Angebot' : 'Angebote'}
@@ -45,8 +49,10 @@
 		{/each}
 	</div>
 {:else}
-	<p class="text-stone-500">
-		Du hast noch keine Anfragen erstellt.
-		<a href="/anfragen/neu" class="text-emerald-700 hover:underline">Jetzt eine erstellen</a>
-	</p>
+	<EmptyState
+		icon={Wrench}
+		title="Du hast noch keine Anfragen erstellt"
+		text="Beschreib, was kaputt ist. Reparateure in deiner Nähe melden sich mit einem Angebot."
+		action={{ href: '/anfragen/neu', label: 'Anfrage erstellen' }}
+	/>
 {/if}

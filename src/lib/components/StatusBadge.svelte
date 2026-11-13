@@ -10,6 +10,6 @@
 		$props();
 </script>
 
-<span class="inline-block rounded-full px-2 py-0.5 text-xs font-medium {statusTone(status)}">
+<span class="inline-block rounded-sm px-2 py-0.5 text-xs font-medium {statusTone(status)}">
 	{label}
 </span>

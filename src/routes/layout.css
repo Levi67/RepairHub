@@ -48,23 +48,6 @@
 		text-wrap: pretty;
 	}
 
-	/* Form controls from @tailwindcss/forms default to white; put them on the dark surfaces. */
-	input:where(:not([type='checkbox'], [type='radio'], [type='file'], [type='range'])),
-	select,
-	textarea {
-		@apply border-edge bg-raised text-neutral-100 placeholder:text-neutral-500;
-		@apply transition-colors focus:border-emerald-400 focus:ring-emerald-400;
-	}
-
-	[type='checkbox'],
-	[type='radio'] {
-		@apply border-edge bg-raised text-emerald-400 focus:ring-emerald-400 focus:ring-offset-canvas;
-	}
-
-	[type='file'] {
-		@apply text-neutral-400 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-raised file:px-3 file:py-2 file:text-sm file:font-medium file:text-neutral-100 file:transition-colors hover:file:bg-edge;
-	}
-
 	a,
 	button,
 	summary {
@@ -96,8 +79,26 @@
 	}
 }
 
-/* Scroll reveal, driven by the `reveal` action. Movement drops to a plain fade under reduced motion. */
 @layer components {
+	/* Form controls from @tailwindcss/forms default to white; put them on the dark surfaces.
+	   Lives in the components layer so it beats the plugin's base styles but not utilities. */
+	input:where(:not([type='checkbox'], [type='radio'], [type='file'], [type='range'])),
+	select,
+	textarea {
+		@apply border-edge bg-raised text-neutral-100 placeholder:text-neutral-500;
+		@apply transition-colors focus:border-emerald-400 focus:ring-emerald-400;
+	}
+
+	[type='checkbox'],
+	[type='radio'] {
+		@apply border-edge bg-raised text-emerald-400 checked:border-transparent checked:bg-current focus:ring-emerald-400 focus:ring-offset-canvas;
+	}
+
+	[type='file'] {
+		@apply text-neutral-400 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-raised file:px-3 file:py-2 file:text-sm file:font-medium file:text-neutral-100 file:transition-colors hover:file:bg-edge;
+	}
+
+	/* Scroll reveal, driven by the `reveal` action. Movement drops to a plain fade under reduced motion. */
 	[data-reveal] {
 		opacity: 0;
 		transform: translateY(16px);

@@ -15,7 +15,7 @@
 
 <svelte:head><title>Meine Aufträge – RepairHub</title></svelte:head>
 
-<h1 class="mb-6 text-2xl font-bold">Meine Aufträge</h1>
+<h1 class="mb-6 text-3xl font-semibold tracking-tight">Meine Aufträge</h1>
 
 {#each tabs as tab (tab.role)}
 	{@const orders = data.orders.filter((o) => o.role === tab.role)}
@@ -26,11 +26,11 @@
 				{#each orders as o (o.id)}
 					<a
 						href="/auftraege/{o.id}"
-						class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stone-200 bg-white p-4 hover:border-emerald-400"
+						class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface p-4 hover:bg-raised"
 					>
 						<div>
 							<div class="font-medium">{o.requestTitle}</div>
-							<div class="text-sm text-stone-600">
+							<div class="text-sm text-neutral-300">
 								{tab.role === 'customer' ? 'Reparateur' : 'Auftraggeber'}: {o.otherPartyName} ·
 								{handoverLabels[o.handoverMode]} · {o.createdAt.toLocaleDateString('de-DE')}
 							</div>
@@ -38,7 +38,7 @@
 						<div class="flex items-center gap-3">
 							{#if o.needsReview}
 								<span
-									class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+									class="rounded-sm bg-amber-400/15 px-2 py-0.5 text-xs font-medium text-amber-300"
 								>
 									Jetzt bewerten
 								</span>
@@ -50,7 +50,11 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-sm text-stone-500">Keine Aufträge.</p>
+			<p class="rounded-xl bg-surface px-4 py-6 text-sm text-neutral-400">
+				{tab.role === 'customer'
+					? 'Sobald du ein Angebot annimmst, erscheint der Auftrag hier.'
+					: 'Sobald jemand dein Angebot annimmt, erscheint der Auftrag hier.'}
+			</p>
 		{/if}
 	</section>
 {/each}

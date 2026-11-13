@@ -1,4 +1,6 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import { page } from '$app/state';
 	import RequestCard from '#lib/components/RequestCard.svelte';
 	import RequestMap from '#lib/components/RequestMap.svelte';
@@ -23,16 +25,16 @@
 <svelte:head><title>Reparaturanfragen – RepairHub</title></svelte:head>
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-	<h1 class="text-2xl font-bold">Reparaturanfragen</h1>
-	<nav class="flex rounded-md border border-stone-300 bg-white p-0.5 text-sm" aria-label="Ansicht">
+	<h1 class="text-3xl font-semibold tracking-tight">Reparaturanfragen</h1>
+	<nav class="flex rounded-lg bg-surface p-1 text-sm" aria-label="Ansicht">
 		{#each [['liste', 'Liste'], ['karte', 'Karte']] as const as [view, label] (view)}
 			<a
 				href={viewUrl(view)}
 				aria-current={data.view === view ? 'page' : undefined}
 				data-sveltekit-noscroll
-				class="rounded px-3 py-1 font-medium {data.view === view
-					? 'bg-emerald-600 text-white'
-					: 'text-stone-600 hover:text-stone-900'}"
+				class="rounded-md px-3 py-1 font-semibold {data.view === view
+					? 'bg-raised text-neutral-100'
+					: 'text-neutral-300 hover:text-neutral-100'}"
 			>
 				{label}
 			</a>
@@ -48,9 +50,9 @@
 			name="q"
 			value={data.filters.q}
 			placeholder="Suchen, z. B. Display, Reißverschluss …"
-			class="min-w-0 flex-1 rounded-md border-stone-300"
+			class="min-w-0 flex-1 rounded-md border-edge"
 		/>
-		<select name="kategorie" value={data.filters.categorySlug} class="rounded-md border-stone-300">
+		<select name="kategorie" value={data.filters.categorySlug} class="rounded-md border-edge">
 			<option value="">Alle Kategorien</option>
 			{#each data.categories as cat (cat.id)}
 				<option value={cat.slug}>{cat.name}</option>
@@ -69,39 +71,39 @@
 			maxlength="5"
 			placeholder="PLZ"
 			aria-label="PLZ"
-			class="w-24 rounded-md border-stone-300"
+			class="w-24 rounded-md border-edge"
 		/>
 		<select
 			name="umkreis"
 			value={data.filters.radiusKm ?? ''}
 			aria-label="Umkreis"
-			class="rounded-md border-stone-300"
+			class="rounded-md border-edge"
 		>
 			<option value="">Überall</option>
 			{#each RADIUS_OPTIONS as km (km)}
 				<option value={km}>Umkreis {km} km</option>
 			{/each}
 		</select>
-		<label class="flex items-center gap-2 text-sm text-stone-600">
+		<label class="flex items-center gap-2 text-sm text-neutral-300">
 			<input
 				type="checkbox"
 				name="versand"
 				value="nein"
 				checked={!data.filters.includeShipping}
-				class="rounded border-stone-300 text-emerald-600"
+				class="rounded border-edge text-emerald-400"
 			/>
 			Versand-Anfragen außerhalb ausblenden
 		</label>
 		<button
-			class="ml-auto rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700"
+			class="ml-auto rounded-md bg-emerald-400 px-3 py-2 font-semibold text-neutral-950 hover:bg-emerald-300"
 		>
-			Filtern
+			Anfragen anzeigen
 		</button>
 	</div>
 	{#if data.locationError}
-		<p class="text-sm text-red-600">{data.locationError}</p>
+		<p class="text-sm text-red-400">{data.locationError}</p>
 	{:else if data.origin}
-		<p class="text-xs text-stone-500">
+		<p class="text-xs text-neutral-400">
 			Entfernungen ab {data.origin.plz}
 			{data.origin.city} (Mitte der PLZ).
 			{#if data.filters.radiusKm && data.filters.includeShipping}
@@ -113,7 +115,7 @@
 
 {#if data.view === 'karte'}
 	<RequestMap requests={data.requests} origin={data.origin} radiusKm={data.filters.radiusKm} />
-	<p class="mt-2 text-sm text-stone-500">
+	<p class="mt-2 text-sm text-neutral-400">
 		{data.requests.length === 0
 			? 'Keine passenden Anfragen gefunden.'
 			: `${data.requests.length} ${data.requests.length === 1 ? 'Anfrage' : 'Anfragen'}`}
@@ -129,5 +131,10 @@
 		{/each}
 	</div>
 {:else}
-	<p class="text-stone-500">Keine passenden Anfragen gefunden.</p>
+	<EmptyState
+		icon={MagnifyingGlass}
+		title="Keine passenden Anfragen"
+		text="Versuch einen größeren Umkreis, eine andere Kategorie oder einen kürzeren Suchbegriff."
+		action={{ href: '/anfragen', label: 'Filter zurücksetzen' }}
+	/>
 {/if}

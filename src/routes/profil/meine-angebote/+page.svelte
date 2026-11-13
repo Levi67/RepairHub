@@ -1,4 +1,6 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import Hammer from 'phosphor-svelte/lib/Hammer';
 	import { formatCents } from '#lib/money.ts';
 	import { handoverLabels } from '#lib/handover.ts';
 	import { quoteDisplayStatus } from '#lib/status.ts';
@@ -11,7 +13,7 @@
 
 <svelte:head><title>Meine Angebote – RepairHub</title></svelte:head>
 
-<h1 class="mb-6 text-2xl font-bold">Meine Angebote</h1>
+<h1 class="mb-6 text-3xl font-semibold tracking-tight">Meine Angebote</h1>
 
 {#if data.quotes.length}
 	<div class="space-y-2">
@@ -19,11 +21,11 @@
 			{@const display = quoteDisplayStatus(q, now)}
 			<a
 				href={q.orderId ? `/auftraege/${q.orderId}` : `/anfragen/${q.requestId}`}
-				class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stone-200 bg-white p-4 hover:border-emerald-400"
+				class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface p-4 hover:bg-raised"
 			>
 				<div>
 					<div class="font-medium">{q.requestTitle}</div>
-					<div class="text-sm text-stone-600">
+					<div class="text-sm text-neutral-300">
 						{handoverLabels[q.handoverMode]} · gesendet am {q.createdAt.toLocaleDateString('de-DE')}
 					</div>
 				</div>
@@ -35,8 +37,10 @@
 		{/each}
 	</div>
 {:else}
-	<p class="text-stone-500">
-		Du hast noch keine Angebote abgegeben.
-		<a href="/anfragen" class="text-emerald-700 hover:underline">Offene Anfragen ansehen</a>
-	</p>
+	<EmptyState
+		icon={Hammer}
+		title="Du hast noch keine Angebote abgegeben"
+		text="Stöber durch offene Anfragen in deiner Umgebung und schick ein Angebot mit Preis und Zeitraum."
+		action={{ href: '/anfragen', label: 'Offene Anfragen ansehen' }}
+	/>
 {/if}

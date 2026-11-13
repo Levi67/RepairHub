@@ -30,13 +30,13 @@
 <svelte:head><title>Anfrage erstellen – RepairHub</title></svelte:head>
 
 <div class="mx-auto max-w-2xl">
-	<h1 class="mb-2 text-2xl font-bold">Reparaturanfrage erstellen</h1>
-	<p class="mb-6 text-stone-600">
+	<h1 class="mb-2 text-3xl font-semibold tracking-tight">Reparaturanfrage erstellen</h1>
+	<p class="mb-6 text-neutral-300">
 		Beschreibe, was kaputt ist. Reparateure schicken dir daraufhin Angebote.
 	</p>
 
 	{#if !data.storageEnabled}
-		<p class="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+		<p class="mb-4 rounded-md bg-amber-400/10 p-3 text-sm text-amber-300">
 			Foto-Upload ist auf diesem Server noch nicht eingerichtet (SUPABASE_URL und
 			SUPABASE_SECRET_KEY fehlen). Ohne Fotos kann keine Anfrage erstellt werden.
 		</p>
@@ -47,17 +47,17 @@
 		use:enhance={() =>
 			({ update }) =>
 				update({ reset: false })}
-		class="space-y-5 rounded-lg border border-stone-200 bg-white p-6"
+		class="space-y-5 rounded-xl bg-surface p-6"
 	>
 		<RequestFormFields categories={data.categories} {values} {errors} bind:photos bind:busy />
 
 		{#if form?.message}
-			<p class="rounded-md bg-red-50 p-3 text-sm text-red-700">{form.message}</p>
+			<p class="rounded-md bg-red-400/10 p-3 text-sm text-red-400">{form.message}</p>
 		{/if}
 
 		<button
 			disabled={busy}
-			class="w-full rounded-md bg-emerald-600 py-2.5 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+			class="w-full rounded-md bg-emerald-400 py-2 font-semibold text-neutral-950 hover:bg-emerald-300 disabled:opacity-50"
 		>
 			{busy ? 'Fotos werden hochgeladen …' : 'Anfrage veröffentlichen'}
 		</button>

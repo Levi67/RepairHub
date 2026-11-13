@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 
@@ -18,15 +19,15 @@
 
 <svelte:head><title>Kategorien – Admin – RepairHub</title></svelte:head>
 
-<h1 class="text-2xl font-bold">Kategorien</h1>
-<p class="mt-1 text-sm text-stone-500">
+<h1 class="text-3xl font-semibold tracking-tight">Kategorien</h1>
+<p class="mt-1 text-sm text-neutral-400">
 	Namen und Reihenfolge erscheinen sofort in Formularen und Filtern. Kategorien, die von Anfragen
 	verwendet werden, lassen sich nur umbenennen. Anfragen können nur Unterkategorien wählen, also
 	braucht jede Oberkategorie mindestens eine Unterkategorie.
 </p>
 
 {#if form?.message && !failedId && !failedCreateIn}
-	<p class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{form.message}</p>
+	<p class="mt-4 rounded-md bg-red-400/10 p-3 text-sm text-red-400">{form.message}</p>
 {/if}
 
 {#snippet row(c: Row, index: number, count: number, isTop: boolean)}
@@ -39,15 +40,13 @@
 				required
 				maxlength="60"
 				aria-label="Name"
-				class="w-full max-w-xs rounded-md border-stone-300 py-1 text-sm {isTop
-					? 'font-semibold'
-					: ''}"
+				class="w-full max-w-xs rounded-md border-edge py-1 text-sm {isTop ? 'font-semibold' : ''}"
 			/>
-			<button class="rounded-md border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50">
+			<button class="rounded-md border border-edge px-2 py-1 text-xs hover:bg-raised">
 				Umbenennen
 			</button>
 		</form>
-		<span class="w-24 text-xs text-stone-500 tabular-nums">
+		<span class="w-24 text-xs text-neutral-400 tabular-nums">
 			{c.requests}
 			{c.requests === 1 ? 'Anfrage' : 'Anfragen'}
 		</span>
@@ -58,7 +57,7 @@
 				value="up"
 				disabled={index === 0}
 				aria-label="Nach oben"
-				class="rounded-md border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50 disabled:opacity-30"
+				class="rounded-md border border-edge px-2 py-1 text-xs hover:bg-raised disabled:opacity-30"
 			>
 				↑
 			</button>
@@ -67,30 +66,32 @@
 				value="down"
 				disabled={index === count - 1}
 				aria-label="Nach unten"
-				class="rounded-md border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50 disabled:opacity-30"
+				class="rounded-md border border-edge px-2 py-1 text-xs hover:bg-raised disabled:opacity-30"
 			>
 				↓
 			</button>
 		</form>
-		<form
-			method="post"
-			action="?/delete"
-			use:enhance={({ cancel }) => {
-				if (!confirm(`Kategorie „${c.name}“ löschen?`)) cancel();
-			}}
-		>
+		<form method="post" action="?/delete" use:enhance>
 			<input type="hidden" name="id" value={c.id} />
-			<button
-				disabled={c.requests > 0 || ('children' in c && c.children.length > 0)}
-				title={c.requests > 0 ? 'Wird von Anfragen verwendet' : undefined}
-				class="rounded-md px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:text-stone-300 disabled:hover:bg-transparent"
-			>
-				Löschen
-			</button>
+			{#if c.requests > 0 || ('children' in c && c.children.length > 0)}
+				<button
+					disabled
+					title={c.requests > 0 ? 'Wird von Anfragen verwendet' : 'Hat Unterkategorien'}
+					class="rounded-md px-2 py-1 text-xs text-neutral-600"
+				>
+					Löschen
+				</button>
+			{:else}
+				<ConfirmButton
+					label="Löschen"
+					message="Kategorie „{c.name}“ löschen?"
+					class="rounded-md px-2 py-1 text-xs text-red-400 hover:bg-red-400/10"
+				/>
+			{/if}
 		</form>
 	</div>
 	{#if failedId === c.id}
-		<p class="mt-1 text-sm text-red-600 {isTop ? '' : 'pl-6'}">{form?.message}</p>
+		<p class="mt-1 text-sm text-red-400 {isTop ? '' : 'pl-6'}">{form?.message}</p>
 	{/if}
 {/snippet}
 
@@ -102,22 +103,22 @@
 			required
 			maxlength="60"
 			{placeholder}
-			class="w-full max-w-xs rounded-md border-dashed border-stone-300 py-1 text-sm"
+			class="w-full max-w-xs rounded-md border-dashed border-edge py-1 text-sm"
 		/>
 		<button
-			class="rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+			class="rounded-md bg-emerald-400 px-2 py-1 text-xs font-semibold text-neutral-950 hover:bg-emerald-300"
 		>
 			Hinzufügen
 		</button>
 	</form>
 	{#if failedCreateIn === (parentId ?? 'top')}
-		<p class="mt-1 text-sm text-red-600 {parentId ? 'pl-6' : ''}">{form?.message}</p>
+		<p class="mt-1 text-sm text-red-400 {parentId ? 'pl-6' : ''}">{form?.message}</p>
 	{/if}
 {/snippet}
 
 <div class="mt-6 space-y-4">
 	{#each data.categories as top, i (top.id)}
-		<section class="space-y-2 rounded-lg border border-stone-200 bg-white p-4">
+		<section class="space-y-2 rounded-xl bg-surface p-4">
 			{@render row(top, i, data.categories.length, true)}
 			{#each top.children as child, j (child.id)}
 				{@render row(child, j, top.children.length, false)}
@@ -125,7 +126,7 @@
 			{@render createForm(top.id, 'Neue Unterkategorie')}
 		</section>
 	{/each}
-	<section class="rounded-lg border border-dashed border-stone-300 p-4">
+	<section class="rounded-lg border border-dashed border-edge p-4">
 		{@render createForm(null, 'Neue Oberkategorie')}
 	</section>
 </div>

@@ -60,31 +60,31 @@
 
 {#snippet error(field: string)}
 	{#if errors[field]}
-		<p class="mt-1 text-sm text-red-600">{errors[field]}</p>
+		<p class="mt-1 text-sm text-red-400">{errors[field]}</p>
 	{/if}
 {/snippet}
 
 <div class="mx-auto max-w-2xl space-y-6">
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h1 class="text-2xl font-bold">Mein Profil</h1>
+		<h1 class="text-3xl font-semibold tracking-tight">Mein Profil</h1>
 		<div class="flex gap-4 text-sm">
-			<a href="/nutzer/{profile.id}" class="font-medium text-emerald-700 hover:underline">
+			<a href="/nutzer/{profile.id}" class="font-medium text-emerald-400 hover:underline">
 				Öffentliches Profil ansehen
 			</a>
-			<a href="/profil/auszahlungen" class="font-medium text-emerald-700 hover:underline">
+			<a href="/profil/auszahlungen" class="font-medium text-emerald-400 hover:underline">
 				Auszahlungen
 			</a>
-			<a href="/profil/einstellungen" class="font-medium text-emerald-700 hover:underline">
+			<a href="/profil/einstellungen" class="font-medium text-emerald-400 hover:underline">
 				Einstellungen
 			</a>
 		</div>
 	</div>
 
-	<section class="rounded-lg border border-stone-200 bg-white p-6">
+	<section class="rounded-xl bg-surface p-6">
 		<h2 class="mb-4 font-semibold">Profilbild</h2>
 		<div class="flex flex-wrap items-center gap-6">
 			{#if preview}
-				<img src={preview} alt="Vorschau" class="size-24 rounded-full object-cover" />
+				<img src={preview} alt="Vorschau" class="size-24 rounded-2xl object-cover" />
 			{:else}
 				<Avatar name={profile.name} image={profile.image} size="lg" />
 			{/if}
@@ -111,20 +111,20 @@
 					/>
 					<button
 						disabled={preparing}
-						class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+						class="rounded-md bg-emerald-400 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-emerald-300 disabled:opacity-50"
 					>
 						Bild speichern
 					</button>
 				</form>
 				{#if profile.image}
 					<form method="post" action="?/removeAvatar" use:enhance>
-						<button class="text-sm text-stone-500 hover:text-red-600">Bild entfernen</button>
+						<button class="text-sm text-neutral-400 hover:text-red-400">Bild entfernen</button>
 					</form>
 				{/if}
 				{#if form && 'message' in form && form.message}
-					<p class="text-sm text-red-600">{form.message}</p>
+					<p class="text-sm text-red-400">{form.message}</p>
 				{:else if form && 'saved' in form && form.saved === 'avatar'}
-					<p class="text-sm text-emerald-700">Profilbild gespeichert.</p>
+					<p class="text-sm text-emerald-400">Profilbild gespeichert.</p>
 				{/if}
 			</div>
 		</div>
@@ -136,7 +136,7 @@
 		use:enhance={() =>
 			({ update }) =>
 				update({ reset: false })}
-		class="space-y-5 rounded-lg border border-stone-200 bg-white p-6"
+		class="space-y-5 rounded-xl bg-surface p-6"
 	>
 		<h2 class="font-semibold">Angaben</h2>
 		<label class="block">
@@ -147,9 +147,9 @@
 				maxlength="50"
 				autocomplete="name"
 				value={values.name}
-				class="mt-1 w-full rounded-md border-stone-300"
+				class="mt-1 w-full rounded-md border-edge"
 			/>
-			<span class="text-xs text-stone-500">Wird öffentlich angezeigt, z. B. „Anna K.“</span>
+			<span class="text-xs text-neutral-400">Wird öffentlich angezeigt, z. B. „Anna K.“</span>
 			{@render error('name')}
 		</label>
 
@@ -161,7 +161,7 @@
 				cityError={errors.city}
 			/>
 		</div>
-		<p class="-mt-3 text-xs text-stone-500">
+		<p class="-mt-3 text-xs text-neutral-400">
 			Öffentlich, damit andere ungefähr sehen, wo du bist. Deine genaue Adresse fragen wir erst bei
 			einem Auftrag ab. Neue Anfragen übernehmen PLZ und Ort automatisch.
 		</p>
@@ -173,19 +173,19 @@
 				rows="4"
 				maxlength="1000"
 				placeholder="Was reparierst du gern? Was sollten andere über dich wissen?"
-				class="mt-1 w-full rounded-md border-stone-300">{values.bio ?? ''}</textarea
+				class="mt-1 w-full rounded-md border-edge">{values.bio ?? ''}</textarea
 			>
 			{@render error('bio')}
 		</label>
 
 		<div class="flex items-center gap-4">
 			<button
-				class="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700"
+				class="rounded-md bg-emerald-400 px-3 py-2 font-semibold text-neutral-950 hover:bg-emerald-300"
 			>
 				Speichern
 			</button>
 			{#if form && 'saved' in form && form.saved === 'profile'}
-				<span class="text-sm text-emerald-700">Gespeichert.</span>
+				<span class="text-sm text-emerald-400">Gespeichert.</span>
 			{/if}
 		</div>
 	</form>

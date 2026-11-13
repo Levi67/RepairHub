@@ -47,23 +47,23 @@
 
 <svelte:head><title>Admin – RepairHub</title></svelte:head>
 
-<h1 class="text-2xl font-bold">Übersicht</h1>
-<p class="mt-1 text-sm text-stone-500">
+<h1 class="text-3xl font-semibold tracking-tight">Übersicht</h1>
+<p class="mt-1 text-sm text-neutral-400">
 	Testbetrieb: Beträge stammen aus Aufträgen ohne echte Zahlung.
 </p>
 
 <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 	{#each tiles as tile (tile.label)}
-		<div class="rounded-lg border border-stone-200 bg-white p-4">
-			<div class="text-sm text-stone-500">{tile.label}</div>
-			<div class="mt-1 text-2xl font-bold tabular-nums">{tile.value}</div>
-			<div class="mt-1 text-xs text-stone-500">{tile.note}</div>
+		<div class="rounded-xl bg-surface p-4">
+			<div class="text-sm text-neutral-400">{tile.label}</div>
+			<div class="mt-1 text-2xl font-semibold tabular-nums">{tile.value}</div>
+			<div class="mt-1 text-xs text-neutral-400">{tile.note}</div>
 		</div>
 	{/each}
 </div>
 
 <div class="mt-8 grid gap-6 md:grid-cols-3">
-	<section class="rounded-lg border border-stone-200 bg-white p-4">
+	<section class="rounded-xl bg-surface p-4">
 		<h2 class="mb-3 font-semibold">Anfragen</h2>
 		<dl class="space-y-1 text-sm">
 			<div class="flex justify-between">
@@ -82,7 +82,7 @@
 				<dt>Geschlossen</dt>
 				<dd class="tabular-nums">{s.requests.closed}</dd>
 			</div>
-			<div class="flex justify-between border-t border-stone-100 pt-1">
+			<div class="flex justify-between border-t border-edge pt-1">
 				<dt>Mit mind. einem Angebot</dt>
 				<dd class="tabular-nums">{percent(s.quotes.requestsWithQuote, s.requests.total)}</dd>
 			</div>
@@ -97,7 +97,7 @@
 		</dl>
 	</section>
 
-	<section class="rounded-lg border border-stone-200 bg-white p-4">
+	<section class="rounded-xl bg-surface p-4">
 		<h2 class="mb-3 font-semibold">Aufträge</h2>
 		<dl class="space-y-1 text-sm">
 			<div class="flex justify-between">
@@ -112,7 +112,7 @@
 				<dt>Storniert</dt>
 				<dd class="tabular-nums">{s.orders.cancelled}</dd>
 			</div>
-			<div class="flex justify-between border-t border-stone-100 pt-1">
+			<div class="flex justify-between border-t border-edge pt-1">
 				<dt>Ø Auftragswert</dt>
 				<dd class="tabular-nums">
 					{s.orders.booked ? formatCents(Math.round(s.orders.gmvCents / s.orders.booked)) : '–'}
@@ -125,7 +125,7 @@
 		</dl>
 	</section>
 
-	<section class="rounded-lg border border-stone-200 bg-white p-4">
+	<section class="rounded-xl bg-surface p-4">
 		<h2 class="mb-3 font-semibold">Nutzer & Chat</h2>
 		<dl class="space-y-1 text-sm">
 			<div class="flex justify-between">
@@ -136,7 +136,7 @@
 				<dt>Gesperrt</dt>
 				<dd class="tabular-nums">{s.users.banned}</dd>
 			</div>
-			<div class="flex justify-between border-t border-stone-100 pt-1">
+			<div class="flex justify-between border-t border-edge pt-1">
 				<dt>Unterhaltungen</dt>
 				<dd class="tabular-nums">{s.chat.conversations}</dd>
 			</div>
@@ -154,9 +154,9 @@
 
 <section class="mt-8">
 	<h2 class="mb-3 text-lg font-semibold">Pro Woche</h2>
-	<div class="overflow-x-auto rounded-lg border border-stone-200 bg-white">
+	<div class="overflow-x-auto rounded-xl bg-surface">
 		<table class="w-full text-sm">
-			<thead class="bg-stone-50 text-left text-stone-500">
+			<thead class="bg-canvas text-left text-neutral-400">
 				<tr>
 					<th class="px-4 py-2 font-medium">Woche ab</th>
 					<th class="px-4 py-2 text-right font-medium">Neue Nutzer</th>
@@ -165,7 +165,7 @@
 					<th class="px-4 py-2 text-right font-medium">GMV</th>
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-stone-100 tabular-nums">
+			<tbody class="divide-y divide-edge tabular-nums">
 				{#each s.weekly as week (week.weekStart.getTime())}
 					<tr>
 						<td class="px-4 py-2">{weekLabel(week.weekStart)}</td>
@@ -178,7 +178,7 @@
 			</tbody>
 		</table>
 	</div>
-	<p class="mt-2 text-xs text-stone-500">
+	<p class="mt-2 text-xs text-neutral-400">
 		GMV = Summe der Auftragspreise aller bezahlten, nicht stornierten Aufträge. Provision zählt erst
 		als verdient, wenn der Auftrag abgeschlossen ist.
 	</p>

@@ -105,11 +105,11 @@
 	{#if photos.length}
 		<ul class="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
 			{#each photos as photo, i (photo.path)}
-				<li class="group relative aspect-square overflow-hidden rounded-md bg-stone-100">
+				<li class="group relative aspect-square overflow-hidden rounded-md bg-raised">
 					<img src={photo.url} alt="Foto {i + 1}" class="size-full object-cover" />
 					{#if i === 0}
 						<span
-							class="absolute top-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white"
+							class="absolute top-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white"
 						>
 							Titelbild
 						</span>
@@ -120,7 +120,7 @@
 								<button
 									type="button"
 									onclick={() => moveToFront(i)}
-									class="rounded bg-white/90 px-1.5 py-0.5 text-xs shadow hover:bg-white"
+									class="rounded bg-canvas/90 px-1.5 py-0.5 text-xs shadow-md shadow-black/40 hover:bg-edge"
 								>
 									Als Titelbild
 								</button>
@@ -131,7 +131,7 @@
 								type="button"
 								onclick={() => remove(i)}
 								aria-label="Foto {i + 1} entfernen"
-								class="rounded bg-white/90 px-1.5 py-0.5 text-xs text-red-700 shadow hover:bg-white"
+								class="rounded bg-canvas/90 px-1.5 py-0.5 text-xs text-red-400 shadow hover:bg-edge"
 							>
 								✕
 							</button>
@@ -144,7 +144,7 @@
 
 	{#if free > 0}
 		<label
-			class="flex cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-stone-300 p-4 text-sm text-stone-600 hover:border-emerald-500 {busy
+			class="flex cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-edge p-4 text-sm text-neutral-300 hover:border-emerald-400/60 {busy
 				? 'pointer-events-none opacity-60'
 				: ''}"
 		>
@@ -167,6 +167,6 @@
 	{/if}
 
 	{#each problems as problem, i (i)}
-		<p class="mt-1 text-sm text-red-600">{problem}</p>
+		<p class="mt-1 text-sm text-red-400">{problem}</p>
 	{/each}
 </div>

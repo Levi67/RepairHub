@@ -70,7 +70,7 @@
 	function popupContent(items: MapRequest[]) {
 		const root = document.createElement('div');
 		const place = document.createElement('div');
-		place.className = 'mb-1 text-xs text-stone-500';
+		place.className = 'mb-1 text-xs text-neutral-400';
 		const distance = items[0].distanceKm;
 		place.textContent = `${items[0].plz} ${items[0].city}${distance !== null ? ` · ${formatDistance(distance)}` : ''}`;
 		root.append(place);
@@ -80,10 +80,10 @@
 			const li = document.createElement('li');
 			const link = document.createElement('a');
 			link.href = `/anfragen/${r.id}`;
-			link.className = 'font-medium text-emerald-700 hover:underline';
+			link.className = 'font-medium text-emerald-400 hover:underline';
 			link.textContent = r.title;
 			const category = document.createElement('div');
-			category.className = 'text-xs text-stone-500';
+			category.className = 'text-xs text-neutral-400';
 			category.textContent = r.categoryName;
 			li.append(link, category);
 			list.append(li);
@@ -119,13 +119,19 @@
 
 		if (origin) {
 			const center = L.latLng(origin.lat, origin.lng);
-			L.circleMarker(center, { radius: 6, color: '#1c1917', weight: 2, fillOpacity: 1 })
+			L.circleMarker(center, {
+				radius: 6,
+				color: '#f5f5f5',
+				fillColor: '#181818',
+				weight: 2,
+				fillOpacity: 1
+			})
 				.bindTooltip(`${origin.plz} ${origin.city}`)
 				.addTo(layers);
 			if (radiusKm) {
 				const circle = L.circle(center, {
 					radius: radiusKm * 1000,
-					color: '#059669',
+					color: '#34d399',
 					weight: 1,
 					fillOpacity: 0.06
 				}).addTo(layers);
@@ -143,7 +149,7 @@
 
 <div
 	bind:this={container}
-	class="isolate h-[65vh] min-h-80 w-full rounded-lg border border-stone-200 bg-stone-100"
+	class="isolate h-[65dvh] min-h-80 w-full overflow-hidden rounded-xl bg-raised"
 ></div>
 
 <style>
@@ -154,11 +160,37 @@
 		width: 28px;
 		height: 28px;
 		border-radius: 9999px;
-		border: 3px solid white;
-		background: #059669;
-		color: white;
+		border: 3px solid #181818;
+		background: #34d399;
+		color: #181818;
 		font-size: 12px;
-		font-weight: 700;
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+		font-weight: 600;
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+	}
+
+	/* Dark map: invert the light OSM tiles and rotate hues back so water stays blue. */
+	:global(.leaflet-tile-pane) {
+		filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+	}
+	:global(.leaflet-container) {
+		background: #181818;
+		font-family: inherit;
+	}
+	:global(.leaflet-popup-content-wrapper),
+	:global(.leaflet-popup-tip) {
+		background: #272727;
+		color: #f5f5f5;
+	}
+	:global(.leaflet-control-attribution) {
+		background: rgb(24 24 24 / 0.8) !important;
+		color: #a3a3a3;
+	}
+	:global(.leaflet-control-attribution a) {
+		color: #d4d4d4;
+	}
+	:global(.leaflet-bar a) {
+		background: #272727;
+		color: #f5f5f5;
+		border-color: #313131;
 	}
 </style>

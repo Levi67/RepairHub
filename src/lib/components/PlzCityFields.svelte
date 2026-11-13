@@ -57,12 +57,12 @@
 		autocomplete="postal-code"
 		value={plz}
 		oninput={lookup}
-		class="mt-1 w-full rounded-md border-stone-300"
+		class="mt-1 w-full rounded-md border-edge"
 	/>
 	{#if plzError}
-		<p class="mt-1 text-sm text-red-600">{plzError}</p>
+		<p class="mt-1 text-sm text-red-400">{plzError}</p>
 	{:else if unknown}
-		<p class="mt-1 text-sm text-amber-700">Diese PLZ kennen wir nicht.</p>
+		<p class="mt-1 text-sm text-amber-300">Diese PLZ kennen wir nicht.</p>
 	{/if}
 </label>
 <label class="block {cityClass}">
@@ -75,7 +75,7 @@
 		autocomplete="address-level2"
 		list={listId}
 		value={city}
-		class="mt-1 w-full rounded-md border-stone-300"
+		class="mt-1 w-full rounded-md border-edge"
 	/>
 	<datalist id={listId}>
 		{#each places as place (place)}
@@ -83,6 +83,6 @@
 		{/each}
 	</datalist>
 	{#if cityError}
-		<p class="mt-1 text-sm text-red-600">{cityError}</p>
+		<p class="mt-1 text-sm text-red-400">{cityError}</p>
 	{/if}
 </label>

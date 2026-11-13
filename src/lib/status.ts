@@ -75,15 +75,15 @@ export function statusTone(status: RequestStatus | QuoteStatus | OrderStatus): s
 		case 'pending':
 		case 'paid':
 		case 'in_progress':
-			return 'bg-sky-100 text-sky-800';
+			return 'bg-neutral-100/10 text-neutral-100';
 		case 'accepted':
 		case 'assigned':
 		case 'repaired':
 		case 'completed':
-			return 'bg-emerald-100 text-emerald-800';
+			return 'bg-emerald-400/10 text-emerald-300';
 		case 'disputed':
-			return 'bg-amber-100 text-amber-800';
+			return 'bg-amber-400/15 text-amber-300';
 		default:
-			return 'bg-stone-100 text-stone-600';
+			return 'bg-raised text-neutral-500';
 	}
 }

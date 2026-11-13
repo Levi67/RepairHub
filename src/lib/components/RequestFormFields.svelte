@@ -23,7 +23,7 @@
 
 {#snippet error(field: string)}
 	{#if errors[field]}
-		<p class="mt-1 text-sm text-red-600">{errors[field]}</p>
+		<p class="mt-1 text-sm text-red-400">{errors[field]}</p>
 	{/if}
 {/snippet}
 
@@ -35,7 +35,7 @@
 		maxlength="80"
 		placeholder="z. B. iPhone 13 – Display gesprungen"
 		value={values.title}
-		class="mt-1 w-full rounded-md border-stone-300"
+		class="mt-1 w-full rounded-md border-edge"
 	/>
 	{@render error('title')}
 </label>
@@ -46,7 +46,7 @@
 		name="categoryId"
 		required
 		value={values.categoryId}
-		class="mt-1 w-full rounded-md border-stone-300"
+		class="mt-1 w-full rounded-md border-edge"
 	>
 		<option value="" disabled>Bitte wählen …</option>
 		{#each categories as cat (cat.id)}
@@ -72,14 +72,14 @@
 		rows="5"
 		maxlength="2000"
 		placeholder="Was ist kaputt? Seit wann? Was hast du schon versucht?"
-		class="mt-1 w-full rounded-md border-stone-300">{values.description}</textarea
+		class="mt-1 w-full rounded-md border-edge">{values.description}</textarea
 	>
 	{@render error('description')}
 </label>
 
 <div>
 	<span class="text-sm font-medium">Fotos * (1–{MAX_PHOTOS})</span>
-	<p class="mb-2 text-xs text-stone-500">
+	<p class="mb-2 text-xs text-neutral-400">
 		Zeig den Defekt und, wenn möglich, das Typenschild. Fotos werden vor dem Hochladen verkleinert.
 	</p>
 	<PhotoPicker bind:photos bind:busy max={MAX_PHOTOS} />
@@ -89,11 +89,11 @@
 <div class="grid gap-4 sm:grid-cols-2">
 	<label class="block">
 		<span class="text-sm font-medium">Marke</span>
-		<input name="brand" value={values.brand} class="mt-1 w-full rounded-md border-stone-300" />
+		<input name="brand" value={values.brand} class="mt-1 w-full rounded-md border-edge" />
 	</label>
 	<label class="block">
 		<span class="text-sm font-medium">Modell</span>
-		<input name="model" value={values.model} class="mt-1 w-full rounded-md border-stone-300" />
+		<input name="model" value={values.model} class="mt-1 w-full rounded-md border-edge" />
 	</label>
 </div>
 
@@ -107,7 +107,7 @@
 					name="handoverModes"
 					value={mode}
 					checked={values.handoverModes.includes(mode)}
-					class="rounded border-stone-300 text-emerald-600"
+					class="rounded border-edge text-emerald-400"
 				/>
 				{handoverLabels[mode]}
 			</label>
@@ -131,26 +131,22 @@
 	<label class="block">
 		<span class="text-sm font-medium">Budget (optional)</span>
 		<div class="mt-1 flex items-center gap-2">
-			<span class="text-stone-600">bis ca.</span>
+			<span class="text-neutral-300">bis ca.</span>
 			<input
 				name="budget"
 				inputmode="decimal"
 				maxlength="12"
 				placeholder="50"
 				value={values.budget}
-				class="w-32 rounded-md border-stone-300"
+				class="w-32 rounded-md border-edge"
 			/>
-			<span class="text-stone-600">€</span>
+			<span class="text-neutral-300">€</span>
 		</div>
 		{@render error('budget')}
 	</label>
 	<label class="block">
 		<span class="text-sm font-medium">Zeitrahmen (optional)</span>
-		<select
-			name="timeframe"
-			value={values.timeframe}
-			class="mt-1 w-full rounded-md border-stone-300"
-		>
+		<select name="timeframe" value={values.timeframe} class="mt-1 w-full rounded-md border-edge">
 			<option value="">keine Angabe</option>
 			{#each timeframes as t (t)}
 				<option value={t}>{timeframeLabels[t]}</option>

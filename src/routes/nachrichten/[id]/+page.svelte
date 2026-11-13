@@ -92,16 +92,16 @@
 
 <svelte:head><title>Chat mit {conversation.otherPartyName} – RepairHub</title></svelte:head>
 
-<a href="/nachrichten" class="text-sm text-emerald-700 hover:underline">← Alle Nachrichten</a>
+<a href="/nachrichten" class="text-sm text-emerald-400 hover:underline">← Alle Nachrichten</a>
 
-<div class="mt-4 flex h-[70vh] flex-col rounded-lg border border-stone-200 bg-white">
-	<header class="flex items-center gap-3 border-b border-stone-100 p-4">
+<div class="mt-4 flex h-[70vh] flex-col rounded-xl bg-surface">
+	<header class="flex items-center gap-3 border-b border-edge p-4">
 		<Avatar name={conversation.otherPartyName} image={conversation.otherPartyImage} />
 		<div class="min-w-0">
 			<a href="/nutzer/{conversation.otherPartyId}" class="font-semibold hover:underline">
 				{conversation.otherPartyName}
 			</a>
-			<div class="text-sm text-stone-500">
+			<div class="text-sm text-neutral-400">
 				<a href="/anfragen/{conversation.requestId}" class="hover:underline">
 					{conversation.requestTitle}
 				</a>
@@ -109,7 +109,7 @@
 					·
 					<a
 						href="/auftraege/{conversation.bookedOrderId}"
-						class="text-emerald-700 hover:underline"
+						class="text-emerald-400 hover:underline"
 					>
 						Zum Auftrag
 					</a>
@@ -122,7 +122,7 @@
 		{#each messages as m, i (m.id)}
 			{@const mine = m.senderId === data.userId}
 			{#if i === 0 || !sameDay(messages[i - 1].createdAt, m.createdAt)}
-				<div class="py-2 text-center text-xs text-stone-400">
+				<div class="py-2 text-center text-xs text-neutral-500">
 					{m.createdAt.toLocaleDateString('de-DE', {
 						weekday: 'short',
 						day: 'numeric',
@@ -133,18 +133,18 @@
 			<div class="flex {mine ? 'justify-end' : 'justify-start'}">
 				<div
 					class="max-w-[80%] rounded-lg px-3 py-2 {mine
-						? 'bg-emerald-600 text-white'
-						: 'bg-stone-100 text-stone-900'}"
+						? 'bg-emerald-400 text-neutral-950'
+						: 'bg-raised text-neutral-100'}"
 				>
 					<p class="text-sm break-words whitespace-pre-line">{m.body}</p>
-					<p class="mt-0.5 text-right text-[10px] {mine ? 'text-emerald-100' : 'text-stone-400'}">
+					<p class="mt-0.5 text-right text-xs {mine ? 'text-neutral-950/60' : 'text-neutral-500'}">
 						{time(m.createdAt)}
 					</p>
 				</div>
 			</div>
 		{:else}
-			<p class="py-8 text-center text-sm text-stone-400">
-				Noch keine Nachrichten. Schreib die erste!
+			<p class="py-8 text-center text-sm text-neutral-500">
+				Noch keine Nachrichten. Schreib die erste.
 			</p>
 		{/each}
 	</div>
@@ -160,13 +160,13 @@
 				await update({ reset: false });
 			};
 		}}
-		class="border-t border-stone-100 p-3"
+		class="border-t border-edge p-3"
 	>
 		{#if showContactWarning}
-			<p class="mb-2 rounded-md bg-amber-50 p-2 text-xs text-amber-800">{contactInfoWarning}</p>
+			<p class="mb-2 rounded-md bg-amber-400/10 p-2 text-xs text-amber-300">{contactInfoWarning}</p>
 		{/if}
 		{#if form?.message}
-			<p class="mb-2 text-sm text-red-600">{form.message}</p>
+			<p class="mb-2 text-sm text-red-400">{form.message}</p>
 		{/if}
 		<div class="flex items-end gap-2">
 			<textarea
@@ -177,10 +177,10 @@
 				placeholder="Nachricht schreiben … (Enter senden, Shift+Enter neue Zeile)"
 				bind:value={body}
 				onkeydown={onKeydown}
-				class="min-w-0 flex-1 resize-none rounded-md border-stone-300 text-sm"></textarea>
+				class="min-w-0 flex-1 resize-none rounded-md border-edge text-sm"></textarea>
 			<button
 				disabled={sending || !body.trim()}
-				class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+				class="rounded-md bg-emerald-400 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-emerald-300 disabled:opacity-50"
 			>
 				Senden
 			</button>
