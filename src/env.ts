@@ -40,6 +40,11 @@ export const variables = defineEnvVars({
 			'Email of the one super admin account (#64). It is always admin, no other admin can change it, and it gets the extra tools in /admin. Empty = no super admin.',
 		schema: (value) => value?.trim().toLowerCase() || undefined
 	},
+	CRON_SECRET: {
+		description:
+			'Secret for the daily background jobs at `/api/cron` (#49). Vercel Cron sends it as `Authorization: Bearer …`. At least 16 random characters. Empty = endpoint off.',
+		schema: (value) => value || undefined
+	},
 	STORAGE_BUCKET: {
 		description:
 			'Storage bucket for request photos. Use a separate one for local development, e.g. `request-photos-dev`.',

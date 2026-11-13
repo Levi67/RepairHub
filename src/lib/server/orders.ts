@@ -26,7 +26,13 @@ import type { OrderStatus } from '#lib/status.ts';
 
 // Placeholder until the team decides (Technical.md 13).
 const COMMISSION_RATE_BP = 1000;
-const AUTO_CONFIRM_DAYS = 7;
+export const AUTO_CONFIRM_DAYS = 7;
+/** Unpaid orders are cancelled after this (#49), so a request isn't blocked by an abandoned payment. */
+export const UNPAID_ORDER_HOURS = 24;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const autoConfirmDate = (from: Date) =>
+	new Date(from.getTime() + AUTO_CONFIRM_DAYS * DAY_MS);
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -179,7 +185,7 @@ export function markRepaired(orderId: string, actorId: string, returnTracking?: 
 			to: 'repaired',
 			set: {
 				repairedAt: now,
-				autoConfirmAt: new Date(now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000),
+				autoConfirmAt: autoConfirmDate(now),
 				...(returnTracking ? { returnTracking } : {})
 			},
 			note: returnTracking ? `Rücksendung: ${returnTracking}` : undefined
@@ -205,6 +211,77 @@ export async function confirmCompleted(orderId: string, actorId: string) {
 	} catch (e) {
 		console.error('Payout failed for order', orderId, e);
 	}
+}
+
+/**
+ * Cron (#49): the customer didn't react for 7 days after "repariert", so the order completes and
+ * the repairer is paid. Checks the date again under the lock, so a confirmation in between wins.
+ */
+export async function autoConfirmOrder(orderId: string): Promise<boolean> {
+	const confirmed = await db.transaction(async (tx) => {
+		const [current] = await tx
+			.select({ status: order.status, autoConfirmAt: order.autoConfirmAt })
+			.from(order)
+			.where(eq(order.id, orderId))
+			.for('update');
+		if (current?.status !== 'repaired' || !current.autoConfirmAt) return false;
+		if (current.autoConfirmAt > new Date()) return false;
+		await transition(tx, {
+			orderId,
+			actorId: null,
+			party: 'either',
+			from: ['repaired'],
+			to: 'completed',
+			set: { completedAt: new Date() },
+			note: `Automatisch bestätigt, ${AUTO_CONFIRM_DAYS} Tage ohne Rückmeldung`
+		});
+		return true;
+	});
+	if (confirmed) {
+		// Like a manual confirmation: a payout that fails now is retried by the next cron run.
+		try {
+			await releasePayout(orderId);
+		} catch (e) {
+			console.error('Payout failed for order', orderId, e);
+		}
+	}
+	return confirmed;
+}
+
+/**
+ * Cron (#49): an order that still waits for payment after 24 hours is cancelled, which reopens the
+ * request. A Checkout page that is still open is left alone: Stripe closes it within the hour and
+ * the webhook cancels the order then. One that was paid after all is applied instead.
+ */
+export async function cancelUnpaidOrder(orderId: string): Promise<boolean> {
+	const current = await db.query.order.findFirst({ where: eq(order.id, orderId) });
+	if (current?.status !== 'awaiting_payment') return false;
+
+	let session: CheckoutSession | null = null;
+	if (current.stripeCheckoutSessionId && stripeEnabled) {
+		session = await retrieveCheckoutSession(current.stripeCheckoutSessionId);
+		if (session.status === 'open') return false;
+	}
+
+	return db.transaction(async (tx) => {
+		if (session?.status === 'complete') {
+			await applyCheckoutSession(session, { tx });
+			return false;
+		}
+		const [locked] = await tx
+			.select({ status: order.status })
+			.from(order)
+			.where(eq(order.id, orderId))
+			.for('update');
+		if (locked?.status !== 'awaiting_payment') return false;
+		await cancelInTx(
+			tx,
+			orderId,
+			null,
+			`Nicht innerhalb von ${UNPAID_ORDER_HOURS} Stunden bezahlt, automatisch storniert`
+		);
+		return true;
+	});
 }
 
 /**

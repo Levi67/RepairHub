@@ -22,6 +22,7 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
 - Admin area (`/admin`, admins only): dashboard with users, requests, orders, GMV and commission (also per week); user search, ban/unban, make/remove admin; categories: rename, reorder, add, delete unused
 - Super admin (`SUPER_ADMIN_EMAIL`, one account): always admin, can't be demoted, banned or edited by other admins. Extra tabs in `/admin`: edit any user (profile, temporary password that must be changed on next login, "Anmelden als …" with a permanent banner, delete completely or anonymise), edit Anfragen and Angebote, force order status (optionally refund / pay out in Stripe), delete categories that are still in use (move or delete their Anfragen), generate test Anfragen with quotes from a test account pool and delete them again, and a log ("Protokoll") of all of this. Destructive actions ask for the super admin's password
+- Background jobs (`/api/cron`, daily via Vercel Cron, needs `CRON_SECRET`): requests expire after 30 days and quotes after 7, orders still unpaid after 24 hours are cancelled (the request reopens), repaired orders are confirmed automatically after 7 days without a reaction (and paid out), failed payouts are retried. The super admin can run them by hand under „Protokoll“
 - Landing page, Impressum/Datenschutz placeholders
 - Category tree seeded via migration
 
@@ -71,6 +72,7 @@ Useful scripts:
    - `ORIGIN` = the Vercel URL, e.g. `https://repairhub.vercel.app` (deploy once, copy the URL, set it, redeploy)
    - `SUPABASE_URL` = `https://<project>.supabase.co`, `SUPABASE_SECRET_KEY` = the secret key. `STORAGE_BUCKET` can stay unset (defaults to `request-photos`)
    - Create that bucket once from your machine: `SUPABASE_URL=… SUPABASE_SECRET_KEY=… STORAGE_BUCKET=request-photos pnpm storage:setup`
+   - `CRON_SECRET` = a new `openssl rand -hex 32`. Vercel sends it to `/api/cron` once a day (schedule in `vercel.json`, 4:00 UTC). Without it the background jobs don't run
 5. Every push to `main` deploys production, and every other branch gets a preview URL.
 
 Migrations are not run automatically on deploy. Run step 2 again whenever a new migration is added.

@@ -35,7 +35,7 @@ import {
 } from '#lib/server/db/schema.ts';
 import { DomainError, failOnDomainError, isUniqueViolation } from '#lib/server/errors.ts';
 import { lookupPlz, plzLocation, UNKNOWN_PLZ } from '#lib/server/geo.ts';
-import { releasePayout } from '#lib/server/orders.ts';
+import { autoConfirmDate, releasePayout } from '#lib/server/orders.ts';
 import { refundPayment } from '#lib/server/payments.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 import { deletePhotos } from '#lib/server/storage.ts';
@@ -101,7 +101,7 @@ export async function confirmOwnPassword(event: RequestEvent, password: string) 
 }
 
 export async function logAction(
-	actorId: string,
+	actorId: string | null,
 	action: string,
 	target: string,
 	details?: Record<string, unknown>
@@ -619,6 +619,8 @@ export async function forceOrderStatus(
 				status: to,
 				...(to !== 'awaiting_payment' && !o.paidAt ? { paidAt: now } : {}),
 				...(to === 'repaired' && !o.repairedAt ? { repairedAt: now } : {}),
+				// A fresh 7 days, so an old date doesn't auto-confirm it right away (#49).
+				...(to === 'repaired' ? { autoConfirmAt: autoConfirmDate(now) } : {}),
 				...(to === 'completed' && !o.completedAt ? { completedAt: now } : {})
 			})
 			.where(eq(order.id, orderId));
