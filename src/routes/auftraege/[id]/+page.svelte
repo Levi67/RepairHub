@@ -6,6 +6,7 @@
 	import { orderStatusLabels } from '#lib/status.ts';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import Stars from '#lib/components/Stars.svelte';
+	import CreditCard from 'phosphor-svelte/lib/CreditCard';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -109,9 +110,40 @@
 
 			{#if form?.message}
 				<p class="mb-3 rounded-md bg-red-400/10 p-3 text-sm text-red-400">{form.message}</p>
+			{:else if data.paymentNotice === 'fehler' && order.status === 'awaiting_payment'}
+				<p class="mb-3 rounded-md bg-red-400/10 p-3 text-sm text-red-400">
+					Die Zahlungsseite von Stripe ließ sich gerade nicht öffnen. Versuch es in einem Moment
+					noch einmal.
+				</p>
 			{/if}
 
-			{#if order.status === 'paid'}
+			{#if order.status === 'awaiting_payment'}
+				{#if isCustomer}
+					{#if data.paymentNotice === 'erfolgreich'}
+						<p class="text-sm text-neutral-300">
+							Danke! Stripe bestätigt deine Zahlung gerade. Lade die Seite in ein paar Sekunden neu.
+						</p>
+					{:else}
+						<p class="mb-3 text-sm text-neutral-300">
+							Bezahle {formatCents(order.priceCents)}, damit {data.repairerName} loslegen kann. Das Geld
+							bleibt bei RepairHub, bis du die Reparatur bestätigst. Storniert ihr vor Beginn, bekommst
+							du alles zurück.
+						</p>
+						<!-- No use:enhance: this leaves the site for Stripe Checkout. -->
+						<form method="post" action="?/pay">
+							<button class="{primary} inline-flex items-center gap-2">
+								<CreditCard size={18} weight="bold" />
+								Jetzt bezahlen
+							</button>
+						</form>
+					{/if}
+				{:else}
+					<p class="text-sm text-neutral-300">
+						{data.customerName} hat dein Angebot angenommen und bezahlt gerade. Sobald die Zahlung da
+						ist, kann es losgehen.
+					</p>
+				{/if}
+			{:else if order.status === 'paid'}
 				{#if isCustomer}
 					<p class="text-sm text-neutral-300">
 						{#if isShipping}
@@ -166,9 +198,28 @@
 					<p class="text-sm text-neutral-300">Warte auf die Bestätigung von {data.customerName}.</p>
 				{/if}
 			{:else if order.status === 'completed'}
-				<p class="text-sm text-neutral-300">Der Auftrag ist abgeschlossen. Danke! 🎉</p>
+				<p class="text-sm text-neutral-300">
+					Der Auftrag ist abgeschlossen. Danke!
+					{#if !isCustomer && data.payment.paidOut}
+						{formatCents(order.payoutCents)} sind an dein Auszahlungskonto unterwegs.
+					{/if}
+				</p>
+				{#if !isCustomer && data.payment.payoutHeld}
+					<p class="mt-3 text-sm text-neutral-300">
+						Deine Auszahlung von {formatCents(order.payoutCents)} wartet auf dein Auszahlungskonto.
+						<a href="/profil/auszahlungen" class="font-semibold text-emerald-400 hover:underline">
+							Auszahlungen einrichten
+						</a>
+					</p>
+				{/if}
 			{:else if order.status === 'cancelled'}
-				<p class="text-sm text-neutral-300">Der Auftrag wurde storniert.</p>
+				<p class="text-sm text-neutral-300">
+					Der Auftrag wurde storniert.
+					{#if data.payment.refunded}
+						{isCustomer ? 'Du bekommst' : `${data.customerName} bekommt`}
+						{formatCents(order.priceCents)} zurück.
+					{/if}
+				</p>
 			{:else}
 				<p class="text-sm text-neutral-300">{orderStatusLabels[order.status]}</p>
 			{/if}
@@ -186,10 +237,10 @@
 				</form>
 			{/if}
 
-			{#if order.status === 'paid'}
+			{#if order.status === 'paid' || (order.status === 'awaiting_payment' && isCustomer)}
 				<details class="mt-6 border-t border-edge pt-4 text-sm">
 					<summary class="cursor-pointer text-neutral-400 hover:text-neutral-100">
-						Auftrag stornieren
+						{order.status === 'awaiting_payment' ? 'Doch nicht bezahlen' : 'Auftrag stornieren'}
 					</summary>
 					<form method="post" action="?/cancel" use:enhance class="mt-3 space-y-2">
 						<textarea
@@ -200,13 +251,16 @@
 							class="w-full rounded-md border-edge"></textarea>
 						<ConfirmButton
 							label="Stornieren"
-							message="Auftrag wirklich stornieren? Die Anfrage wird danach wieder geöffnet."
+							message={data.payment.viaStripe
+								? `Auftrag wirklich stornieren? ${formatCents(order.priceCents)} werden vollständig erstattet, und die Anfrage wird wieder geöffnet.`
+								: 'Auftrag wirklich stornieren? Die Anfrage wird danach wieder geöffnet.'}
 							class="inline-block {button} bg-red-500 text-neutral-950 hover:bg-red-400"
 						/>
 						<p class="text-xs text-neutral-400">
-							Möglich, solange die Reparatur noch nicht begonnen hat. Die Anfrage wird wieder
-							geöffnet: Die anderen Angebote können erneut angenommen werden, und es können neue
-							Angebote eingehen.
+							Möglich, solange die Reparatur noch nicht begonnen hat.
+							{#if data.payment.viaStripe}Die Zahlung wird vollständig erstattet.{/if}
+							Die Anfrage wird wieder geöffnet: Die anderen Angebote können erneut angenommen werden,
+							und es können neue Angebote eingehen.
 						</p>
 					</form>
 				</details>
@@ -329,7 +383,24 @@
 					</div>
 				{/if}
 			</dl>
-			<p class="mt-3 text-xs text-neutral-400">Testbetrieb: Es wird kein echtes Geld bewegt.</p>
+			<p class="mt-3 border-t border-edge pt-3 text-neutral-300">
+				{#if order.status === 'awaiting_payment'}
+					Noch nicht bezahlt.
+				{:else if data.payment.refunded}
+					Zahlung erstattet.
+				{:else if !data.payment.viaStripe}
+					Ohne Zahlung angelegt (Stripe war nicht eingerichtet).
+				{:else if isCustomer}
+					Bezahlt. RepairHub hält das Geld, bis du die Reparatur bestätigst.
+				{:else if data.payment.paidOut}
+					An dich ausgezahlt.
+				{:else if data.payment.payoutHeld}
+					Auszahlung wartet auf dein Auszahlungskonto.
+				{:else}
+					Bezahlt. Du bekommst das Geld, sobald {data.customerName} die Reparatur bestätigt.
+				{/if}
+			</p>
+			<p class="mt-2 text-xs text-neutral-400">Testbetrieb: Es wird kein echtes Geld bewegt.</p>
 		</section>
 
 		<section class="rounded-xl bg-surface p-6 text-sm">

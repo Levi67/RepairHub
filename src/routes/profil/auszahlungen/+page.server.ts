@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { failOnDomainError } from '#lib/server/errors.ts';
 import { dashboardLink, getPayoutAccount, startOnboarding } from '#lib/server/payouts.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
+import { releaseHeldPayouts } from '#lib/server/orders.ts';
 import { payoutAccountRequired, stripeEnabled } from '#lib/server/stripe.ts';
 
 // Onboarding and Express Dashboard links point to Stripe; SvelteKit only redirects to origins we allow.
@@ -19,7 +20,10 @@ export const load: PageServerLoad = async (event) => {
 	if (event.url.searchParams.has('neu')) {
 		return redirect(303, await startOnboarding(user, event.url.origin), STRIPE);
 	}
-	return { stripeEnabled, payoutAccountRequired, ...(await getPayoutAccount(user.id)) };
+	const account = await getPayoutAccount(user.id);
+	// Payouts that waited for this account go out now (also covers local development without webhook).
+	if (account.status === 'active') await releaseHeldPayouts(user.id);
+	return { stripeEnabled, payoutAccountRequired, ...account };
 };
 
 export const actions: Actions = {

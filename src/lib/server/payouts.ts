@@ -67,6 +67,14 @@ export async function syncAccount(accountId: string, tx: Db = db) {
 	return status;
 }
 
+/** The user who owns a connected account. */
+export async function repairerForAccount(accountId: string) {
+	const row = await db.query.repairerProfile.findFirst({
+		where: eq(repairerProfile.stripeAccountId, accountId)
+	});
+	return row?.userId ?? null;
+}
+
 /**
  * The repairer's payout state for the settings page. While onboarding isn't done, it asks Stripe
  * for the current state, so it's right even without the webhook (e.g. in local development).

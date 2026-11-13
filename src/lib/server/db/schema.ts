@@ -31,7 +31,7 @@ export const quoteStatus = pgEnum('quote_status', [
 	'expired'
 ]);
 
-// Full lifecycle from Technical.md 3.6. `awaiting_payment`, `disputed` and `refunded` are unused until Stripe and the admin panel exist.
+// Full lifecycle from Technical.md 3.6. `disputed` and `refunded` are unused until disputes (#53) exist.
 export const orderStatus = pgEnum('order_status', [
 	'awaiting_payment',
 	'paid',
@@ -213,6 +213,13 @@ export const order = pgTable(
 		status: orderStatus('status').notNull(),
 		outboundTracking: text('outbound_tracking'),
 		returnTracking: text('return_tracking'),
+		// Stripe (Technical.md 3.8). Orders from before payments existed have none of these.
+		stripeCheckoutSessionId: text('stripe_checkout_session_id').unique(),
+		stripePaymentIntentId: text('stripe_payment_intent_id'),
+		// Set once the payout reached the repairer; a completed, Stripe-paid order without it is
+		// held until the repairer's payout account is active.
+		stripeTransferId: text('stripe_transfer_id'),
+		stripeRefundId: text('stripe_refund_id'),
 		paidAt: timestamp('paid_at', { withTimezone: true }),
 		repairedAt: timestamp('repaired_at', { withTimezone: true }),
 		completedAt: timestamp('completed_at', { withTimezone: true }),

@@ -64,6 +64,13 @@
       "when": 1794347521850,
       "tag": "0008_reviews_payouts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794600973431,
+      "tag": "0009_payments",
+      "breakpoints": true
     }
   ]
 }

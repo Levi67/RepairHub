@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '#lib/server/db/index.ts';
 import {
@@ -7,11 +7,21 @@ import {
 	orderEvent,
 	quote,
 	repairRequest,
+	repairerProfile,
 	user
 } from '#lib/server/db/schema.ts';
 import { DomainError } from '#lib/server/errors.ts';
+import {
+	createCheckoutSession,
+	expireCheckoutSession,
+	refundPayment,
+	retrieveCheckoutSession,
+	transferPayout,
+	type CheckoutSession
+} from '#lib/server/payments.ts';
+import { stripeEnabled } from '#lib/server/stripe.ts';
 import { needsReviewSql } from '#lib/server/reviews.ts';
-import { commissionCents } from '#lib/money.ts';
+import { commissionCents, formatCents } from '#lib/money.ts';
 import type { OrderStatus } from '#lib/status.ts';
 
 // Placeholder until the team decides (Technical.md 13).
@@ -21,9 +31,11 @@ const AUTO_CONFIRM_DAYS = 7;
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * Customer accepts a quote. Until Stripe is integrated the payment step is skipped,
- * so this does what the `checkout.session.completed` webhook will do later:
- * order `paid`, request `assigned`, all other open quotes `rejected`.
+ * Customer accepts a quote: request `assigned`, all other open quotes `rejected`, and an order
+ * `awaiting_payment` that the customer pays next through Stripe Checkout (`startPayment`). The
+ * request is taken right away, so nobody can accept a second quote while the payment is open;
+ * an abandoned payment cancels the order, which reopens the request and its quotes.
+ * Without Stripe (local testing) the payment is skipped and the order starts as `paid`.
  */
 export async function acceptQuote(customerId: string, quoteId: string): Promise<string> {
 	return db.transaction(async (tx) => {
@@ -73,16 +85,17 @@ export async function acceptQuote(customerId: string, quoteId: string): Promise<
 				commissionCents: commission,
 				payoutCents: row.quote.priceCents - commission,
 				handoverMode: row.quote.handoverMode,
-				status: 'paid',
-				paidAt: new Date()
+				...(stripeEnabled ? { status: 'awaiting_payment' } : { status: 'paid', paidAt: new Date() })
 			})
 			.returning({ id: order.id });
 
 		await tx.insert(orderEvent).values({
 			orderId: created.id,
 			actorId: customerId,
-			toStatus: 'paid',
-			note: 'Angebot angenommen (Zahlung im Testbetrieb übersprungen)'
+			toStatus: stripeEnabled ? 'awaiting_payment' : 'paid',
+			note: stripeEnabled
+				? 'Angebot angenommen'
+				: 'Angebot angenommen (Zahlung übersprungen, Stripe ist nicht eingerichtet)'
 		});
 
 		return created.id;
@@ -94,12 +107,13 @@ type Party = 'customer' | 'repairer' | 'either';
 /**
  * Shared core of every status change (Technical.md 6.2): locks the order, checks
  * who may act and from which status, then updates it and logs an order event.
+ * `actorId: null` is the system (Stripe webhook), which may act for either side.
  */
 async function transition(
 	tx: Tx,
 	opts: {
 		orderId: string;
-		actorId: string;
+		actorId: string | null;
 		party: Party;
 		from: OrderStatus[];
 		to: OrderStatus;
@@ -109,11 +123,15 @@ async function transition(
 ) {
 	const [current] = await tx.select().from(order).where(eq(order.id, opts.orderId)).for('update');
 
+	const system = opts.actorId === null;
 	const isCustomer = current?.customerId === opts.actorId;
 	const isRepairer = current?.repairerId === opts.actorId;
-	if (!current || (!isCustomer && !isRepairer)) throw new DomainError('Auftrag nicht gefunden.');
+	if (!current || (!system && !isCustomer && !isRepairer)) {
+		throw new DomainError('Auftrag nicht gefunden.');
+	}
 
 	const allowed =
+		system ||
 		opts.party === 'either' ||
 		(opts.party === 'customer' && isCustomer) ||
 		(opts.party === 'repairer' && isRepairer);
@@ -169,8 +187,8 @@ export function markRepaired(orderId: string, actorId: string, returnTracking?: 
 	);
 }
 
-export function confirmCompleted(orderId: string, actorId: string) {
-	return db.transaction((tx) =>
+export async function confirmCompleted(orderId: string, actorId: string) {
+	await db.transaction((tx) =>
 		transition(tx, {
 			orderId,
 			actorId,
@@ -181,33 +199,231 @@ export function confirmCompleted(orderId: string, actorId: string) {
 			note: 'Reparatur bestätigt'
 		})
 	);
+	// The order is completed either way; a payout that fails now is retried later (releasePayout).
+	try {
+		await releasePayout(orderId);
+	} catch (e) {
+		console.error('Payout failed for order', orderId, e);
+	}
 }
 
 /**
- * Either side can cancel before work starts. The request opens again: new quotes can come in,
- * and the quotes rejected by this acceptance become open again so the customer can pick one.
+ * Either side can cancel before work starts. A paid order is refunded in full (#48); an open
+ * Checkout page is closed so it can't be paid anymore. The request opens again: new quotes can
+ * come in, and the quotes rejected by this acceptance become open again so the customer can pick one.
  */
 export function cancelOrder(orderId: string, actorId: string, reason?: string) {
-	return db.transaction(async (tx) => {
-		const cancelled = await transition(tx, {
-			orderId,
-			actorId,
-			party: 'either',
-			from: ['awaiting_payment', 'paid'],
-			to: 'cancelled',
-			note: reason
-		});
-		await tx
-			.update(repairRequest)
-			.set({ status: 'open' })
-			.where(and(eq(repairRequest.id, cancelled.requestId), eq(repairRequest.status, 'assigned')));
-		// Only an acceptance rejects quotes, and the previous cancellation restored its rejections,
-		// so every rejected quote on this request was rejected by the order being cancelled.
-		await tx
-			.update(quote)
-			.set({ status: 'pending' })
-			.where(and(eq(quote.requestId, cancelled.requestId), eq(quote.status, 'rejected')));
+	return db.transaction((tx) => cancelInTx(tx, orderId, actorId, reason));
+}
+
+async function cancelInTx(tx: Tx, orderId: string, actorId: string | null, reason?: string) {
+	const cancelled = await transition(tx, {
+		orderId,
+		actorId,
+		party: 'either',
+		from: ['awaiting_payment', 'paid'],
+		to: 'cancelled',
+		note: reason
 	});
+
+	if (cancelled.status === 'paid' && cancelled.stripePaymentIntentId) {
+		// Inside the transaction: if Stripe refuses the refund, the order stays as it was.
+		const refundId = await refundPayment(cancelled.stripePaymentIntentId);
+		await tx.update(order).set({ stripeRefundId: refundId }).where(eq(order.id, orderId));
+		await tx.insert(orderEvent).values({
+			orderId,
+			actorId: null,
+			fromStatus: 'cancelled',
+			toStatus: 'cancelled',
+			note: `${formatCents(cancelled.priceCents)} werden erstattet. Die Gutschrift dauert je nach Zahlungsart ein paar Tage.`
+		});
+	} else if (cancelled.status === 'awaiting_payment' && cancelled.stripeCheckoutSessionId) {
+		await expireCheckoutSession(cancelled.stripeCheckoutSessionId);
+	}
+
+	await tx
+		.update(repairRequest)
+		.set({ status: 'open' })
+		.where(and(eq(repairRequest.id, cancelled.requestId), eq(repairRequest.status, 'assigned')));
+	// Only an acceptance rejects quotes, and the previous cancellation restored its rejections,
+	// so every rejected quote on this request was rejected by the order being cancelled.
+	await tx
+		.update(quote)
+		.set({ status: 'pending' })
+		.where(and(eq(quote.requestId, cancelled.requestId), eq(quote.status, 'rejected')));
+}
+
+/**
+ * Link to Stripe Checkout for an order that waits for payment (#46). Reuses the open Checkout
+ * page if there is one, otherwise opens a new one. Returns null if the order is paid already.
+ */
+export async function startPayment(
+	orderId: string,
+	customer: { id: string; email: string },
+	origin: string
+): Promise<string | null> {
+	const [row] = await db
+		.select({ order, title: repairRequest.title })
+		.from(order)
+		.innerJoin(repairRequest, eq(order.requestId, repairRequest.id))
+		.where(and(eq(order.id, orderId), eq(order.customerId, customer.id)));
+	if (!row) throw new DomainError('Auftrag nicht gefunden.');
+	if (row.order.status !== 'awaiting_payment') return null;
+
+	if (row.order.stripeCheckoutSessionId) {
+		const existing = await retrieveCheckoutSession(row.order.stripeCheckoutSessionId);
+		if (existing.status === 'open' && existing.url) return existing.url;
+		if (existing.status === 'complete') {
+			await applyCheckoutSession(existing);
+			return null;
+		}
+	}
+
+	const session = await createCheckoutSession({
+		orderId,
+		title: row.title,
+		priceCents: row.order.priceCents,
+		customerEmail: customer.email,
+		origin
+	});
+	await db
+		.update(order)
+		.set({ stripeCheckoutSessionId: session.id })
+		.where(and(eq(order.id, orderId), eq(order.status, 'awaiting_payment')));
+	if (!session.url) throw new DomainError('Stripe hat keine Zahlungsseite geliefert.');
+	return session.url;
+}
+
+/**
+ * Brings an order in line with its Checkout page, from the webhook or when the customer comes back
+ * from Stripe (so it also works locally, where no webhook arrives):
+ * - paid → order `paid`. A payment for an order that's no longer waiting for one (cancelled in
+ *   the meantime, or paid twice from two tabs) is refunded right away.
+ * - expired, or an asynchronous payment (e.g. SEPA) failed → order cancelled, request reopens.
+ */
+export async function applyCheckoutSession(
+	session: CheckoutSession,
+	opts: { paymentFailed?: boolean; tx?: Tx } = {}
+) {
+	const orderId = session.metadata?.order_id;
+	if (!orderId) return;
+
+	const run = async (tx: Tx) => {
+		const [current] = await tx.select().from(order).where(eq(order.id, orderId)).for('update');
+		if (!current) return;
+		const paymentIntentId =
+			typeof session.payment_intent === 'string'
+				? session.payment_intent
+				: session.payment_intent?.id;
+
+		if (session.status === 'complete' && session.payment_status === 'paid' && paymentIntentId) {
+			if (current.status === 'awaiting_payment') {
+				await transition(tx, {
+					orderId,
+					actorId: null,
+					party: 'either',
+					from: ['awaiting_payment'],
+					to: 'paid',
+					set: {
+						paidAt: new Date(),
+						stripeCheckoutSessionId: session.id,
+						stripePaymentIntentId: paymentIntentId
+					},
+					note: `Zahlung über ${formatCents(current.priceCents)} eingegangen`
+				});
+			} else if (current.stripePaymentIntentId !== paymentIntentId) {
+				await refundPayment(paymentIntentId);
+				console.warn('Refunded a payment for order', orderId, 'in status', current.status);
+			}
+			return;
+		}
+
+		const failed = session.status === 'expired' || opts.paymentFailed;
+		if (
+			failed &&
+			current.status === 'awaiting_payment' &&
+			current.stripeCheckoutSessionId === session.id
+		) {
+			await cancelInTx(
+				tx,
+				orderId,
+				null,
+				session.status === 'expired'
+					? 'Zahlung nicht abgeschlossen, die Zahlungsseite ist abgelaufen'
+					: 'Zahlung fehlgeschlagen'
+			);
+		}
+	};
+
+	if (opts.tx) await run(opts.tx);
+	else await db.transaction(run);
+}
+
+/** Checks the order's open Checkout page with Stripe (customer back from Checkout, page loads). */
+export async function syncPayment(orderId: string) {
+	const current = await db.query.order.findFirst({ where: eq(order.id, orderId) });
+	if (current?.status !== 'awaiting_payment' || !current.stripeCheckoutSessionId) return;
+	await applyCheckoutSession(await retrieveCheckoutSession(current.stripeCheckoutSessionId));
+}
+
+/**
+ * Pays the repairer of a completed order (#47): price minus commission goes to their connected
+ * account. Held (returns false) while they have no active payout account; it's sent once they
+ * finish onboarding (`releaseHeldPayouts`). Orders from before payments existed have nothing to pay.
+ */
+export async function releasePayout(orderId: string): Promise<boolean> {
+	return db.transaction(async (tx) => {
+		const [current] = await tx.select().from(order).where(eq(order.id, orderId)).for('update');
+		if (
+			current?.status !== 'completed' ||
+			!current.stripePaymentIntentId ||
+			current.stripeTransferId
+		) {
+			return false;
+		}
+		const profile = await tx.query.repairerProfile.findFirst({
+			where: eq(repairerProfile.userId, current.repairerId)
+		});
+		if (profile?.stripeStatus !== 'active' || !profile.stripeAccountId) return false;
+
+		const transferId = await transferPayout({
+			orderId,
+			paymentIntentId: current.stripePaymentIntentId,
+			amountCents: current.payoutCents,
+			destination: profile.stripeAccountId
+		});
+		await tx.update(order).set({ stripeTransferId: transferId }).where(eq(order.id, orderId));
+		await tx.insert(orderEvent).values({
+			orderId,
+			actorId: null,
+			fromStatus: 'completed',
+			toStatus: 'completed',
+			note: `${formatCents(current.payoutCents)} an den Reparateur ausgezahlt`
+		});
+		return true;
+	});
+}
+
+/** Sends every payout that waited for this repairer's payout account. */
+export async function releaseHeldPayouts(repairerId: string) {
+	const held = await db
+		.select({ id: order.id })
+		.from(order)
+		.where(
+			and(
+				eq(order.repairerId, repairerId),
+				eq(order.status, 'completed'),
+				isNotNull(order.stripePaymentIntentId),
+				isNull(order.stripeTransferId)
+			)
+		);
+	for (const { id } of held) {
+		try {
+			await releasePayout(id);
+		} catch (e) {
+			console.error('Payout failed for order', id, e);
+		}
+	}
 }
 
 /** Customer enters the tracking number after shipping the item. No status change. */

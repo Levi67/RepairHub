@@ -8,9 +8,10 @@ import {
 	listQuotesForRequest,
 	withdrawQuote
 } from '#lib/server/quotes.ts';
-import { acceptQuote, getActiveOrderIdForRequest } from '#lib/server/orders.ts';
+import { acceptQuote, getActiveOrderIdForRequest, startPayment } from '#lib/server/orders.ts';
+import { STRIPE_CHECKOUT } from '#lib/server/payments.ts';
 import { getConversationIdFor, startConversation } from '#lib/server/conversations.ts';
-import { failOnDomainError } from '#lib/server/errors.ts';
+import { DomainError, failOnDomainError } from '#lib/server/errors.ts';
 import { canSendQuotes } from '#lib/server/payouts.ts';
 import { loginUrl } from '#lib/server/redirect.ts';
 import { fieldErrors } from '#lib/schemas/form.ts';
@@ -150,6 +151,16 @@ export const actions: Actions = {
 		} catch (e) {
 			return failOnDomainError(e);
 		}
-		return redirect(303, `/auftraege/${orderId}`);
+		// Straight on to Stripe Checkout. If that fails, the order page offers to try again.
+		let checkoutUrl: string | null;
+		try {
+			checkoutUrl = await startPayment(orderId, user, event.url.origin);
+		} catch (e) {
+			if (!(e instanceof DomainError)) throw e;
+			return redirect(303, `/auftraege/${orderId}?zahlung=fehler`);
+		}
+		return checkoutUrl
+			? redirect(303, checkoutUrl, STRIPE_CHECKOUT)
+			: redirect(303, `/auftraege/${orderId}`);
 	}
 };

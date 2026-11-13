@@ -2,7 +2,9 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { stripeEvent } from '#lib/server/db/schema.ts';
-import { syncAccount } from '#lib/server/payouts.ts';
+import { applyCheckoutSession, releaseHeldPayouts } from '#lib/server/orders.ts';
+import { retrieveCheckoutSession } from '#lib/server/payments.ts';
+import { repairerForAccount, syncAccount } from '#lib/server/payouts.ts';
 import { stripeEnabled, verifyWebhook } from '#lib/server/stripe.ts';
 
 /**
@@ -24,6 +26,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		error(400, 'Invalid signature');
 	}
 
+	// A repairer whose payout account just became active gets the payouts that waited for it.
+	let activatedAccount: string | null = null;
+
 	await db.transaction(async (tx) => {
 		const [fresh] = await tx
 			.insert(stripeEvent)
@@ -37,11 +42,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			// new information from them.
 			case 'v2.core.account[configuration.recipient].capability_status_updated':
 			case 'v2.core.account[requirements].updated':
-				if (event.related_object) await syncAccount(event.related_object.id, tx);
+				if (event.related_object) {
+					const status = await syncAccount(event.related_object.id, tx);
+					if (status === 'active') activatedAccount = event.related_object.id;
+				}
 				break;
-			// Payments (#46–48) will be handled here too, e.g. 'v1.checkout.session.completed'.
+			// Customer payments (#46): the Checkout page was paid, expired, or a delayed payment
+			// method (e.g. SEPA) finished. The session's current state decides what happens.
+			case 'v1.checkout.session.completed':
+			case 'v1.checkout.session.async_payment_succeeded':
+			case 'v1.checkout.session.async_payment_failed':
+			case 'v1.checkout.session.expired':
+				if (event.related_object) {
+					const session = await retrieveCheckoutSession(event.related_object.id);
+					await applyCheckoutSession(session, {
+						tx,
+						paymentFailed: event.type === 'v1.checkout.session.async_payment_failed'
+					});
+				}
+				break;
 		}
 	});
+
+	if (activatedAccount) {
+		const repairerId = await repairerForAccount(activatedAccount);
+		if (repairerId) await releaseHeldPayouts(repairerId);
+	}
 
 	return json({ received: true });
 };

@@ -7,9 +7,13 @@ import {
 	getOrderForUser,
 	markInProgress,
 	markRepaired,
-	setOutboundTracking
+	releasePayout,
+	setOutboundTracking,
+	startPayment,
+	syncPayment
 } from '#lib/server/orders.ts';
-import { failOnDomainError } from '#lib/server/errors.ts';
+import { DomainError, failOnDomainError } from '#lib/server/errors.ts';
+import { STRIPE_CHECKOUT } from '#lib/server/payments.ts';
 import { createReview, getOrderReviews } from '#lib/server/reviews.ts';
 import { fieldErrors } from '#lib/schemas/form.ts';
 import { reviewSchema } from '#lib/schemas/review.ts';
@@ -20,12 +24,44 @@ export const load: PageServerLoad = async (event) => {
 	if (!user) return redirect(302, loginUrl(event.url));
 	if (!z.uuid().safeParse(event.params.id).success) error(404, 'Auftrag nicht gefunden');
 
-	const order = await getOrderForUser(event.params.id, user.id);
+	let order = await getOrderForUser(event.params.id, user.id);
 	if (!order) error(404, 'Auftrag nicht gefunden');
 
+	// Ask Stripe directly instead of waiting for the webhook: the customer may just be back from
+	// Checkout, and locally no webhook arrives at all. Same for a payout that was held.
+	const { status, stripeCheckoutSessionId, stripePaymentIntentId, stripeTransferId } = order.order;
+	const needsPaymentSync = status === 'awaiting_payment' && stripeCheckoutSessionId;
+	const heldPayout = status === 'completed' && stripePaymentIntentId && !stripeTransferId;
+	if (needsPaymentSync || heldPayout) {
+		try {
+			if (needsPaymentSync) await syncPayment(order.order.id);
+			else await releasePayout(order.order.id);
+			order = (await getOrderForUser(event.params.id, user.id)) ?? order;
+		} catch (e) {
+			if (!(e instanceof DomainError)) throw e;
+		}
+	}
+
 	const reviews = await getOrderReviews(order.order.id, user.id, order.order.completedAt);
+	const o = order.order;
 	return {
 		...order,
+		// Payment state for the price box, without handing Stripe IDs to the browser.
+		order: {
+			...o,
+			stripeCheckoutSessionId: null,
+			stripePaymentIntentId: null,
+			stripeTransferId: null,
+			stripeRefundId: null
+		},
+		payment: {
+			viaStripe: Boolean(o.stripePaymentIntentId),
+			refunded: Boolean(o.stripeRefundId),
+			paidOut: Boolean(o.stripeTransferId),
+			payoutHeld:
+				o.status === 'completed' && Boolean(o.stripePaymentIntentId) && !o.stripeTransferId
+		},
+		paymentNotice: event.url.searchParams.get('zahlung'),
 		reviews,
 		role: order.order.customerId === user.id ? 'customer' : 'repairer'
 	} as const;
@@ -76,6 +112,20 @@ export const actions: Actions = {
 			return failOnDomainError(e);
 		}
 		return { reviewed: true };
+	},
+	pay: async (event) => {
+		const user = event.locals.user;
+		if (!user) return redirect(302, loginUrl(event.url));
+		if (!z.uuid().safeParse(event.params.id).success)
+			return fail(404, { message: 'Nicht gefunden.' });
+
+		let url: string | null;
+		try {
+			url = await startPayment(event.params.id, user, event.url.origin);
+		} catch (e) {
+			return failOnDomainError(e);
+		}
+		return url ? redirect(303, url, STRIPE_CHECKOUT) : redirect(303, event.url.pathname);
 	},
 	tracking: (event) =>
 		run(event, async (id, userId, f) => {

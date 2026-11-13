@@ -265,7 +265,8 @@
 								<span class="text-xs text-neutral-400">
 									gültig bis {q.validUntil.toLocaleDateString('de-DE')}
 								</span>
-								<form method="post" action="?/accept" use:enhance>
+								<!-- No use:enhance: this leaves the site for Stripe Checkout. -->
+								<form method="post" action="?/accept">
 									<input type="hidden" name="quoteId" value={q.id} />
 									<button
 										class="rounded-md bg-emerald-400 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-emerald-300"

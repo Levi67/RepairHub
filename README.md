@@ -16,7 +16,8 @@ The full technical concept lives in the Obsidian vault (`Repair Hub/Technical.md
 - Quotes: repairers send a quote on a request, can withdraw it; the customer compares them (with the repairer's rating and distance) and accepts one
 - Reviews in both directions after a completed order (1–5 stars + text), hidden until both sides reviewed or 14 days passed. Average and list on the public profile; admins can remove reviews
 - Payouts (`/profil/auszahlungen`): Stripe Connect Express onboarding. Optional: anyone can send quotes without a payout account, unless `REQUIRE_PAYOUT_ACCOUNT=true` (see "Stripe" below)
-- Orders (`/auftraege`): paid → in progress → repaired → completed, cancel before start, tracking numbers, status history. Payment is skipped until Stripe is added (accepting a quote marks the order as paid)
+- Orders (`/auftraege`): awaiting payment → paid → in progress → repaired → completed, cancel before start, tracking numbers, status history
+- Payments (Stripe test mode): accepting a quote opens Stripe Checkout; the money stays with the platform until the customer confirms the repair, then price minus commission is transferred to the repairer (held until they have an active payout account). Cancelling a paid order refunds it in full. Without `STRIPE_SECRET_KEY` the payment step is skipped and orders start as paid
 - „Meine Anfragen“ and „Meine Angebote“ overview pages
 - Chat (`/nachrichten`): one conversation per request and repairer, started by a quote or a question. New messages are polled every 5 s, the unread badge every 30 s. Warns about contact details before booking
 - Admin area (`/admin`, admins only): dashboard with users, requests, orders, GMV and commission (also per week); user search, ban/unban, make/remove admin; categories: rename, reorder, add, delete unused
@@ -79,7 +80,16 @@ Without `STRIPE_SECRET_KEY` the app runs without Stripe, and `/profil/auszahlung
 
 1. Use a Stripe **sandbox**. Turn on **Connect** (marketplace), fill in the platform profile and **accept loss liability** (Settings → Connect → Platform profile), and set the branding.
 2. _Developers → API keys_: put the `sk_test_…` key into `STRIPE_SECRET_KEY` (`.env` and Vercel).
-3. _Developers → Webhooks → Add destination_: events from **Your account**, payload style **Thin**, events `v2.core.account[configuration.recipient].capability_status_updated` and `v2.core.account[requirements].updated`, endpoint `https://<your app>/api/stripe/webhook`. Put its signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel.
-4. Locally the webhook is optional: the status is refreshed whenever `/profil/auszahlungen` is opened.
+3. _Developers → Webhooks → Add destination_: events from **Your account**, payload style **Thin**, endpoint `https://<your app>/api/stripe/webhook`, events:
+   - `v2.core.account[configuration.recipient].capability_status_updated`, `v2.core.account[requirements].updated` (payout accounts)
+   - `v1.checkout.session.completed`, `v1.checkout.session.async_payment_succeeded`, `v1.checkout.session.async_payment_failed`, `v1.checkout.session.expired` (customer payments)
+
+   Put its signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel.
+
+4. Locally the webhook is optional: the payout status is refreshed whenever `/profil/auszahlungen` is opened, and a payment when the customer comes back from Checkout to the order page. Only an abandoned Checkout page needs the webhook (or a manual "Doch nicht bezahlen") to free the request again.
+
+Test payment: card `4242 4242 4242 4242`, any future date, any CVC.
+
+**Money flow** ("separate charges and transfers"): the Checkout payment lands on the platform account (`transfer_group = order_<id>`). On completion a Transfer of `payout_cents` goes to the repairer, tied to the original charge (`source_transaction`), so it works while the money is still pending. Repairers without an active payout account get it as soon as their account turns active. Cancelling a paid order creates a full Refund.
 
 Connected accounts use **Accounts v2** (`recipient` configuration, Express Dashboard, platform-owned fees and losses), as Stripe recommends for marketplaces with separate charges and transfers.
