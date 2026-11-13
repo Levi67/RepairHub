@@ -1,2 +1,121 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/geist';
 @plugin '@tailwindcss/forms';
+
+/* Dark surfaces, from back to front. Text uses the neutral scale; the one accent is emerald. */
+@theme {
+	--font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+
+	--color-canvas: #181818;
+	--color-surface: #1f1f1f;
+	--color-raised: #272727;
+	--color-edge: #313131;
+	--color-admin: #131209;
+
+	--ease-base: cubic-bezier(0.22, 1, 0.36, 1);
+	--default-transition-duration: 300ms;
+	--default-transition-timing-function: var(--ease-base);
+}
+
+@layer base {
+	:root {
+		color-scheme: dark;
+		scroll-behavior: smooth;
+	}
+
+	body {
+		@apply bg-canvas font-sans text-neutral-100 antialiased;
+	}
+
+	/* Faint grain so large dark surfaces don't read as dead flat. */
+	body::before {
+		content: '';
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		opacity: 0.035;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	}
+
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
+	/* Form controls from @tailwindcss/forms default to white; put them on the dark surfaces. */
+	input:where(:not([type='checkbox'], [type='radio'], [type='file'], [type='range'])),
+	select,
+	textarea {
+		@apply border-edge bg-raised text-neutral-100 placeholder:text-neutral-500;
+		@apply transition-colors focus:border-emerald-400 focus:ring-emerald-400;
+	}
+
+	[type='checkbox'],
+	[type='radio'] {
+		@apply border-edge bg-raised text-emerald-400 focus:ring-emerald-400 focus:ring-offset-canvas;
+	}
+
+	[type='file'] {
+		@apply text-neutral-400 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-raised file:px-3 file:py-2 file:text-sm file:font-medium file:text-neutral-100 file:transition-colors hover:file:bg-edge;
+	}
+
+	a,
+	button,
+	summary {
+		@apply transition-[color,background-color,border-color,opacity,transform] duration-300 ease-base;
+	}
+
+	button:not(:disabled):active {
+		transform: scale(0.98);
+	}
+
+	:focus-visible {
+		@apply rounded-sm outline-2 outline-offset-2 outline-emerald-400;
+	}
+
+	button:disabled {
+		@apply cursor-not-allowed;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:root {
+			scroll-behavior: auto;
+		}
+		*,
+		*::before,
+		*::after {
+			transition-duration: 1ms !important;
+			animation-duration: 1ms !important;
+		}
+	}
+}
+
+/* Scroll reveal, driven by the `reveal` action. Movement drops to a plain fade under reduced motion. */
+@layer components {
+	[data-reveal] {
+		opacity: 0;
+		transform: translateY(16px);
+		transition:
+			opacity 700ms var(--ease-base),
+			transform 700ms var(--ease-base);
+	}
+	[data-reveal='in'] {
+		opacity: 1;
+		transform: none;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		[data-reveal] {
+			transform: none;
+		}
+	}
+
+	.hero-gradient {
+		@apply bg-gradient-to-r from-white to-[#9b9b9b] bg-clip-text text-transparent;
+	}
+}

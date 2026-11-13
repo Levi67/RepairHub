@@ -110,7 +110,10 @@ export async function startOnboarding(
 				{
 					contact_email: user.email,
 					display_name: user.name,
-					identity: { country: 'DE' },
+					// Repairers are private people by default, so Stripe skips the business-type and company
+					// questions and only asks what the law requires (name, birth date, address, bank account).
+					// Businesses ("Gewerblich") come with the repairer profile (#30).
+					identity: { country: 'DE', entity_type: 'individual' },
 					dashboard: 'express',
 					// Separate charges and transfers: the platform is the merchant of record, pays Stripe's
 					// fees and carries losses. Needs "loss liability" accepted in the Connect settings.
