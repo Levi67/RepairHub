@@ -73,7 +73,9 @@
 		</form>
 		<form method="post" action="?/delete" use:enhance>
 			<input type="hidden" name="id" value={c.id} />
-			{#if c.requests > 0 || ('children' in c && c.children.length > 0)}
+			{#if (c.requests > 0 || ('children' in c && c.children.length > 0)) && data.isSuperAdmin}
+				{@render deleteWithContent(c)}
+			{:else if c.requests > 0 || ('children' in c && c.children.length > 0)}
 				<button
 					disabled
 					title={c.requests > 0 ? 'Wird von Anfragen verwendet' : 'Hat Unterkategorien'}
@@ -93,6 +95,62 @@
 	{#if failedId === c.id}
 		<p class="mt-1 text-sm text-red-400 {isTop ? '' : 'pl-6'}">{form?.message}</p>
 	{/if}
+{/snippet}
+
+{#snippet deleteWithContent(c: Row)}
+	{@const childIds = 'children' in c ? c.children.map((x) => x.id) : []}
+	<details class="relative">
+		<summary
+			class="cursor-pointer list-none rounded-md px-2 py-1 text-xs text-red-400 hover:bg-red-400/10 [&::-webkit-details-marker]:hidden"
+		>
+			Mit Inhalt löschen …
+		</summary>
+		<div
+			class="absolute top-full right-0 z-20 mt-2 w-80 space-y-3 rounded-xl bg-raised p-4 text-sm shadow-xl ring-1 shadow-black/40 ring-edge"
+		>
+			<p>
+				„{c.name}“ hat {c.requests}
+				{c.requests === 1 ? 'Anfrage' : 'Anfragen'}{childIds.length
+					? ` und ${childIds.length} Unterkategorien`
+					: ''}. Was passiert damit?
+			</p>
+			<input type="hidden" name="id" value={c.id} />
+			<label class="flex items-start gap-2">
+				<input
+					type="radio"
+					name="mode"
+					value="move"
+					checked
+					class="mt-1 border-edge text-red-400"
+				/>
+				<span>
+					Verschieben nach
+					<select name="targetId" class="mt-1 w-full rounded-md border-edge text-sm">
+						{#each data.categories as top (top.id)}
+							{#if top.id !== c.id && !childIds.includes(top.id)}
+								<option value={top.id}>{top.name}</option>
+							{/if}
+							{#each top.children as child (child.id)}
+								{#if child.id !== c.id && !childIds.includes(child.id) && top.id !== c.id}
+									<option value={child.id}>&nbsp;&nbsp;{child.name}</option>
+								{/if}
+							{/each}
+						{/each}
+					</select>
+				</span>
+			</label>
+			<label class="flex items-start gap-2">
+				<input type="radio" name="mode" value="delete" class="mt-1 border-edge text-red-400" />
+				<span>Mit allen Anfragen löschen (inkl. Angebote, Aufträge, Chats)</span>
+			</label>
+			<button
+				formaction="?/deleteWithContent"
+				class="w-full rounded-md bg-red-500 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-red-400"
+			>
+				Kategorie löschen
+			</button>
+		</div>
+	</details>
 {/snippet}
 
 {#snippet createForm(parentId: string | null, placeholder: string)}

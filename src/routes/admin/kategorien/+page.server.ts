@@ -9,12 +9,18 @@ import {
 	renameCategory,
 	requireAdmin
 } from '#lib/server/admin.ts';
-import { failOnDomainError } from '#lib/server/errors.ts';
+import { DomainError, failOnDomainError } from '#lib/server/errors.ts';
 import { categoryNameSchema } from '#lib/schemas/admin.ts';
+import {
+	deleteCategoryWithContent,
+	field,
+	isSuperAdmin,
+	superAction
+} from '#lib/server/superadmin.ts';
 
 export const load: PageServerLoad = async (event) => {
 	requireAdmin(event);
-	return { categories: await listCategoriesForAdmin() };
+	return { categories: await listCategoriesForAdmin(), isSuperAdmin: isSuperAdmin(event.locals) };
 };
 
 const idSchema = z.uuid();
@@ -75,5 +81,17 @@ export const actions: Actions = {
 		} catch (error) {
 			return failOnDomainError(error);
 		}
+	},
+
+	/** Super admin only (#64): delete a category that is still in use. */
+	deleteWithContent: async (event) => {
+		const result = await superAction(event, async (actor, form) => {
+			const id = idSchema.safeParse(field(form, 'id'));
+			if (!id.success) throw new DomainError('Kategorie fehlt.');
+			const mode = field(form, 'mode') === 'delete' ? 'delete' : 'move';
+			const target = idSchema.safeParse(field(form, 'targetId'));
+			await deleteCategoryWithContent(actor.id, id.data, mode, target.success ? target.data : null);
+		});
+		return 'message' in result ? result : undefined;
 	}
 };

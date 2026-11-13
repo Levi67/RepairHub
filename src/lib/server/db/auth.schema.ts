@@ -17,7 +17,15 @@ export const user = pgTable('user', {
 	city: text('city'),
 	notificationPrefs: jsonb('notification_prefs'),
 	isAdmin: boolean('is_admin').default(false).notNull(),
-	bannedAt: timestamp('banned_at')
+	bannedAt: timestamp('banned_at'),
+	// Mirrors SUPER_ADMIN_EMAIL (synced on every request in hooks.server.ts); never set from the UI.
+	isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
+	// Set when the super admin gives the user a temporary password; cleared once they chose a new one.
+	mustChangePassword: boolean('must_change_password').default(false).notNull(),
+	// Generated test account (admin test data). Looks like a normal user to everyone else.
+	isTest: boolean('is_test').default(false).notNull(),
+	// Anonymised by the super admin: name and email are scrubbed, login is gone, shared data stays.
+	deletedAt: timestamp('deleted_at')
 });
 
 export const session = pgTable(
@@ -32,6 +40,8 @@ export const session = pgTable(
 			.notNull(),
 		ipAddress: text('ip_address'),
 		userAgent: text('user_agent'),
+		// The super admin acting as this user ("Anmelden als …").
+		impersonatedBy: text('impersonated_by'),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' })

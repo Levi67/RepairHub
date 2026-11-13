@@ -11,6 +11,7 @@
 	import X from 'phosphor-svelte/lib/X';
 	import SignOut from 'phosphor-svelte/lib/SignOut';
 	import Crown from 'phosphor-svelte/lib/Crown';
+	import Warning from 'phosphor-svelte/lib/Warning';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -89,6 +90,31 @@
 
 <div class="relative z-10 flex min-h-dvh flex-col">
 	<header class="sticky top-0 z-40 px-4 pt-3">
+		{#if data.impersonation}
+			<!-- Can't be closed: as long as the super admin acts as someone else, every page says so. -->
+			<div
+				role="alert"
+				class="-mx-4 -mt-3 mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-2 text-sm font-semibold {data
+					.impersonation.isTest
+					? 'bg-amber-400 text-neutral-950'
+					: 'bg-red-600 text-white'}"
+			>
+				<span class="flex items-center gap-2">
+					<Warning size={18} weight="fill" />
+					{data.impersonation.isTest ? 'Testkonto:' : 'Achtung, echtes Konto:'} Du bist als
+					{data.user?.name} angemeldet. Alles, was du tust, passiert in diesem Konto.
+				</span>
+				<form method="post" action="/zurueckwechseln">
+					<button
+						class="rounded-md px-3 py-1 font-semibold {data.impersonation.isTest
+							? 'bg-neutral-950 text-amber-300 hover:bg-neutral-800'
+							: 'bg-white text-red-700 hover:bg-red-100'}"
+					>
+						Zurück zu {data.impersonation.by}
+					</button>
+				</form>
+			</div>
+		{/if}
 		<nav
 			class="mx-auto flex max-w-6xl items-center gap-6 rounded-xl border border-edge bg-surface/80 py-2 pr-2 pl-4 shadow-lg shadow-black/30 backdrop-blur-md"
 			aria-label="Hauptnavigation"

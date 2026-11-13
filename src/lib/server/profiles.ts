@@ -1,4 +1,4 @@
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { order, user, userAvatar } from '#lib/server/db/schema.ts';
 import { DomainError } from '#lib/server/errors.ts';
@@ -96,7 +96,8 @@ export async function getPublicProfile(userId: string) {
 			bannedAt: user.bannedAt
 		})
 		.from(user)
-		.where(eq(user.id, userId));
+		.where(and(eq(user.id, userId), isNull(user.deletedAt)));
+	// Anonymised accounts (#64) have no public profile anymore.
 	if (!row) return null;
 
 	const completed = (side: 'customerId' | 'repairerId') =>

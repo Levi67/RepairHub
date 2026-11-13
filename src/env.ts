@@ -35,6 +35,11 @@ export const variables = defineEnvVars({
 			'`true` = repairers need an active Stripe payout account to send quotes (Technical.md 3.5). Off by default, so the whole app can be used for testing without one.',
 		schema: (value) => value === 'true'
 	},
+	SUPER_ADMIN_EMAIL: {
+		description:
+			'Email of the one super admin account (#64). It is always admin, no other admin can change it, and it gets the extra tools in /admin. Empty = no super admin.',
+		schema: (value) => value?.trim().toLowerCase() || undefined
+	},
 	STORAGE_BUCKET: {
 		description:
 			'Storage bucket for request photos. Use a separate one for local development, e.g. `request-photos-dev`.',

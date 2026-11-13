@@ -10,6 +10,8 @@ declare global {
 		interface Locals {
 			user?: Session['user'];
 			session?: Session['session'];
+			/** The super admin, while they act as `user` ("Anmelden als …"). */
+			impersonator?: { id: string; name: string };
 		}
 
 		// interface Error {}

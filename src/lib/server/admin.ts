@@ -165,6 +165,9 @@ export async function listUsers(search: string) {
 			email: user.email,
 			image: user.image,
 			isAdmin: user.isAdmin,
+			isSuperAdmin: user.isSuperAdmin,
+			isTest: user.isTest,
+			deletedAt: user.deletedAt,
 			bannedAt: user.bannedAt,
 			createdAt: user.createdAt,
 			requests:
@@ -195,11 +198,12 @@ export async function setBanned(adminId: string, userId: string, banned: boolean
 
 	await db.transaction(async (tx) => {
 		const [target] = await tx
-			.select({ isAdmin: user.isAdmin })
+			.select({ isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin })
 			.from(user)
 			.where(eq(user.id, userId))
 			.for('update');
 		if (!target) throw new DomainError('Nutzer nicht gefunden.');
+		if (target.isSuperAdmin) throw new DomainError('Dieses Konto kann nicht gesperrt werden.');
 		if (banned && target.isAdmin) {
 			throw new DomainError(
 				'Admins können nicht gesperrt werden. Entziehe zuerst die Adminrechte.'
@@ -218,6 +222,14 @@ export async function setAdmin(adminId: string, userId: string, isAdmin: boolean
 	// Also guarantees there is always at least one admin left.
 	if (adminId === userId && !isAdmin) {
 		throw new DomainError('Du kannst dir die Adminrechte nicht selbst entziehen.');
+	}
+	// The super admin is always admin; only SUPER_ADMIN_EMAIL can change that, not the UI.
+	const [target] = await db
+		.select({ isSuperAdmin: user.isSuperAdmin })
+		.from(user)
+		.where(eq(user.id, userId));
+	if (target?.isSuperAdmin && !isAdmin) {
+		throw new DomainError('Diesem Konto können die Adminrechte nicht entzogen werden.');
 	}
 	const updated = await db
 		.update(user)

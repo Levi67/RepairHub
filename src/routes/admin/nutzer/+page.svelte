@@ -5,6 +5,7 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+	const badge = 'rounded-sm px-2 py-0.5 text-xs font-medium';
 
 	const confirmations: Record<string, (name: string) => string> = {
 		ban: (name) =>
@@ -49,9 +50,17 @@
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-2">
 					<a href="/nutzer/{u.id}" class="font-medium hover:underline">{u.name}</a>
-					{#if u.isAdmin}
-						<span class="rounded-sm bg-amber-400/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-							Admin
+					{#if u.isSuperAdmin}
+						<span class="{badge} bg-emerald-400/15 text-emerald-300">Super-Admin</span>
+					{:else if u.isAdmin}
+						<span class="{badge} bg-amber-400/15 text-amber-300">Admin</span>
+					{/if}
+					{#if data.isSuperAdmin && u.isTest}
+						<span class="{badge} bg-raised text-neutral-300">Testkonto</span>
+					{/if}
+					{#if u.deletedAt}
+						<span class="{badge} bg-raised text-neutral-400">
+							Anonymisiert am {u.deletedAt.toLocaleDateString('de-DE')}
 						</span>
 					{/if}
 					{#if u.bannedAt}
@@ -69,7 +78,15 @@
 					Angebote · {u.orders} Aufträge
 				</div>
 			</div>
-			{#if !isSelf}
+			{#if data.isSuperAdmin}
+				<a
+					href="/admin/nutzer/{u.id}"
+					class="rounded-md bg-raised px-3 py-2 text-sm font-semibold hover:bg-edge"
+				>
+					Öffnen
+				</a>
+			{/if}
+			{#if !isSelf && !u.isSuperAdmin && !u.deletedAt}
 				<div class="flex flex-wrap gap-2">
 					{#snippet action(name: string, label: string, tone: string)}
 						<form method="post" action="?/{name}" use:enhance>

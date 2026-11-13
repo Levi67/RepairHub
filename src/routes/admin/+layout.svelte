@@ -4,15 +4,28 @@
 	import Gauge from 'phosphor-svelte/lib/Gauge';
 	import Users from 'phosphor-svelte/lib/Users';
 	import Tag from 'phosphor-svelte/lib/Tag';
+	import Wrench from 'phosphor-svelte/lib/Wrench';
+	import Receipt from 'phosphor-svelte/lib/Receipt';
+	import Flask from 'phosphor-svelte/lib/Flask';
+	import ClockCounterClockwise from 'phosphor-svelte/lib/ClockCounterClockwise';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { data, children }: LayoutProps = $props();
 
-	const links = [
+	const links = $derived([
 		{ href: '/admin', label: 'Übersicht', icon: Gauge },
 		{ href: '/admin/nutzer', label: 'Nutzer', icon: Users },
-		{ href: '/admin/kategorien', label: 'Kategorien', icon: Tag }
-	];
+		{ href: '/admin/kategorien', label: 'Kategorien', icon: Tag },
+		// Super admin only (#64).
+		...(data.isSuperAdmin
+			? [
+					{ href: '/admin/anfragen', label: 'Anfragen', icon: Wrench },
+					{ href: '/admin/auftraege', label: 'Aufträge', icon: Receipt },
+					{ href: '/admin/testdaten', label: 'Testdaten', icon: Flask },
+					{ href: '/admin/protokoll', label: 'Protokoll', icon: ClockCounterClockwise }
+				]
+			: [])
+	]);
 </script>
 
 <!-- The admin area sits on its own warm-black surface so it never gets mistaken for the public app. -->
@@ -25,13 +38,16 @@
 				<Crown size={22} weight="fill" />
 			</span>
 			<div>
-				<div class="text-sm font-semibold">Admin</div>
+				<div class="text-sm font-semibold">{data.isSuperAdmin ? 'Super-Admin' : 'Admin'}</div>
 				<div class="text-xs text-neutral-500">Verwaltung von RepairHub</div>
 			</div>
 		</div>
-		<nav class="flex gap-1" aria-label="Admin">
+		<nav class="flex flex-wrap gap-1" aria-label="Admin">
 			{#each links as link (link.href)}
-				{@const current = page.url.pathname === link.href}
+				{@const current =
+					link.href === '/admin'
+						? page.url.pathname === '/admin'
+						: page.url.pathname.startsWith(link.href)}
 				<a
 					href={link.href}
 					aria-current={current ? 'page' : undefined}

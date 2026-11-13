@@ -2,11 +2,17 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { listUsers, requireAdmin, setAdmin, setBanned } from '#lib/server/admin.ts';
 import { failOnDomainError } from '#lib/server/errors.ts';
+import { isSuperAdmin } from '#lib/server/superadmin.ts';
 
 export const load: PageServerLoad = async (event) => {
 	requireAdmin(event);
 	const q = event.url.searchParams.get('q')?.trim() ?? '';
-	return { q, users: await listUsers(q), currentUserId: event.locals.user!.id };
+	return {
+		q,
+		users: await listUsers(q),
+		currentUserId: event.locals.user!.id,
+		isSuperAdmin: isSuperAdmin(event.locals)
+	};
 };
 
 /** Runs one admin change on the user named in the form's `userId`. */
