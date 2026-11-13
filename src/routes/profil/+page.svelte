@@ -2,6 +2,9 @@
 	import { enhance } from '$app/forms';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import PlzCityFields from '#lib/components/PlzCityFields.svelte';
+	import Eye from 'phosphor-svelte/lib/Eye';
+	import Wallet from 'phosphor-svelte/lib/Wallet';
+	import GearSix from 'phosphor-svelte/lib/GearSix';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -67,17 +70,17 @@
 <div class="mx-auto max-w-2xl space-y-6">
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-3xl font-semibold tracking-tight">Mein Profil</h1>
-		<div class="flex gap-4 text-sm">
-			<a href="/nutzer/{profile.id}" class="font-medium text-emerald-400 hover:underline">
-				Öffentliches Profil ansehen
-			</a>
-			<a href="/profil/auszahlungen" class="font-medium text-emerald-400 hover:underline">
-				Auszahlungen
-			</a>
-			<a href="/profil/einstellungen" class="font-medium text-emerald-400 hover:underline">
-				Einstellungen
-			</a>
-		</div>
+		<nav class="flex flex-wrap gap-2" aria-label="Profil">
+			{#each [{ href: `/nutzer/${profile.id}`, label: 'Öffentliches Profil', icon: Eye }, { href: '/profil/auszahlungen', label: 'Auszahlungen', icon: Wallet }, { href: '/profil/einstellungen', label: 'Einstellungen', icon: GearSix }] as link (link.href)}
+				<a
+					href={link.href}
+					class="flex items-center gap-2 rounded-md bg-raised px-3 py-2 text-sm font-semibold text-neutral-100 hover:bg-edge active:scale-[0.98]"
+				>
+					<link.icon size={16} weight="bold" class="text-neutral-400" />
+					{link.label}
+				</a>
+			{/each}
+		</nav>
 	</div>
 
 	<section class="rounded-xl bg-surface p-6">
